@@ -1,0 +1,79 @@
+/* 
+ * Publishing script for open-source projects
+ * Copyright 2016 TypeFox GmbH
+ */
+
+if (!hasProperty('publish.version'))
+	throw new ProjectConfigurationException("The version to be published has to be set with -Ppublish.version=<version>", null)
+if (!hasProperty('publish.branch'))
+	ext.'publish.branch' = 'master'
+
+
+//--------------------------------------------------------------------
+// Source repositories for fetching artifacts built by Jenkins
+
+def jenkinsRepo = { jobName ->
+	"http://services.typefox.io/open-source/jenkins/job/$jobName/lastStableBuild/artifact/build/maven-repository/"
+}
+def jenkinsPipelineRepo = { jobName ->
+	"http://services.typefox.io/open-source/jenkins/job/$jobName/job/${getProperty('publish.branch')}/lastStableBuild/artifact/build/maven-repository/"
+}
+repositories {
+	maven { url jenkinsRepo('lsapi') }
+	maven { url jenkinsPipelineRepo('xtext-lib') }
+	maven { url jenkinsPipelineRepo('xtext-core') }
+	maven { url jenkinsPipelineRepo('xtext-extras') }
+	maven { url jenkinsPipelineRepo('xtext-web') }
+	jcenter()
+}
+
+apply from: "artifacts.gradle"
+
+//--------------------------------------------------------------------
+// Definition and configuration of dependencies, artifacts, and tasks
+
+apply plugin: 'signing'
+if (hasProperty('SIGNING_SECRETKEYRINGFILE'))
+	ext.'signing.secretKeyRingFile' = getProperty('SIGNING_SECRETKEYRINGFILE')
+if (hasProperty('SIGNING_KEYID'))
+	ext.'signing.keyId' = getProperty('SIGNING_KEYID')
+if (hasProperty('SIGNING_PASSWORD'))
+	ext.'signing.password' = getProperty('SIGNING_PASSWORD')
+
+artifactsMap.entrySet().each { artifactsEntry ->
+	def dependenciesConfig = configurations.create("dependencies${artifactsEntry.key}")
+	def archivesConfig = configurations.create("archives${artifactsEntry.key}")
+	def signaturesConfig = configurations.create("signatures${artifactsEntry.key}")
+	
+	artifactsEntry.value.each { artifactName ->
+		def groupName = artifactName.startsWith('org.eclipse.xtend') ? 'org.eclipse.xtend' : 'org.eclipse.xtext'
+		dependencies.add(dependenciesConfig.name, [group: groupName, name: artifactName, version: getProperty('publish.version')])
+	}
+	
+	def copyTask = task "copy${artifactsEntry.key}" (type: Copy) {
+		description "Copy the built artifacts of ${artifactsEntry.key} into the build folder"
+		from dependenciesConfig
+		into "$buildDir/artifacts"
+		artifactsEntry.value.each { artifactName ->
+			include "**/$artifactName*.jar"
+			include "**/$artifactName*.xml"
+		}
+	}
+	
+	artifactsEntry.value.each { artifactName ->
+		artifacts.add(archivesConfig.name, file("$buildDir/artifacts/$artifactName-${getProperty('publish.version')}.jar")) {
+			builtBy copyTask
+		}
+	}
+	
+	signing.sign archivesConfig
+	def signTask = project.getTasksByName("signArchives${artifactsEntry.key}", false).first()
+	
+	artifactsEntry.value.each { artifactName ->
+		def signatureFile = file("$buildDir/artifacts/$artifactName-${getProperty('publish.version')}.jar.asc")
+		signTask.outputs.file signatureFile
+		artifacts.add(signaturesConfig.name, signatureFile) {
+			builtBy signTask
+		}
+	}
+}

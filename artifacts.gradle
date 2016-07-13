@@ -1,0 +1,42 @@
+/* 
+ * Definition of artifacts to be published
+ * Copyright 2016 TypeFox GmbH
+ */
+
+ext.artifactsMap = [
+	'LsApi': [
+		'io.typefox.lsapi',
+		'io.typefox.lsapi.annotations',
+		'io.typefox.lsapi.services'
+	],
+	'XtextLib': [
+		'org.eclipse.xtext.xbase.lib',
+		'org.eclipse.xtend.lib',
+		'org.eclipse.xtend.lib.macro',
+		'org.eclipse.xtext.xbase.lib.gwt',
+		'org.eclipse.xtend.lib.gwt'
+	],
+	'XtextCore': [
+		'org.eclipse.xtext',
+		'org.eclipse.xtext.ide',
+		'org.eclipse.xtext.util',
+		'org.eclipse.xtext.testing',
+		'org.eclipse.xtext.xtext.generator',
+		'org.eclipse.xtext.xtext.wizard'
+	],
+	'XtextExtras': [
+		'org.eclipse.xtext.common.types',
+		'org.eclipse.xtext.java',
+		'org.eclipse.xtext.xbase',
+		'org.eclipse.xtext.xbase.ide',
+		'org.eclipse.xtext.smap',
+		'org.eclipse.xtext.builder.standalone',
+		'org.eclipse.xtext.ecore',
+		'org.eclipse.xtext.generator'
+	],
+	'XtextWeb': [
+		'org.eclipse.xtext.web',
+		'org.eclipse.xtext.xbase.web',
+		'org.eclipse.xtext.web.servlet'
+	]
+]
