@@ -7,7 +7,6 @@ if (!hasProperty('publish.version'))
 	throw new ProjectConfigurationException("The version to be published has to be set with -Ppublish.version=<version>", null)
 if (!hasProperty('publish.branch'))
 	ext.'publish.branch' = 'master'
-version = property('publish.version')
 
 
 //--------------------------------------------------------------------
@@ -54,12 +53,15 @@ publishing.repositories {
 			url "https://oss.sonatype.org/content/repositories/snapshots/"
 		else
 			url "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-		credentials {
-			username = findProperty('publishing.userName')
-			password = findProperty('publishing.password')
+		if (hasProperty('publishing.userName') && hasProperty('publishing.password')) {
+			credentials {
+				username = property('publishing.userName')
+				password = property('publishing.password')
+			}
 		}
 	}
 }
+def repositoryName = "MavenRepository"
 
 def classifiersExtensions = [ new Tuple(null, 'jar'), new Tuple('sources', 'jar'), new Tuple('javadoc', 'jar'), new Tuple(null, 'pom') ]
 def getArtifactFileName = { artifactName, classifierName, extensionName ->
@@ -86,7 +88,7 @@ artifactsMap.entrySet().each { artifactsEntry ->
 	}
 	
 	// Step 2: Copy the dependencies to the local build folder
-	def copyTask = task "copy${artifactsEntry.key}" (type: Copy) {
+	def archivesCopyTask = task "copy${artifactsEntry.key}" (type: Copy) {
 		description "Copy the built artifacts of ${artifactsEntry.key} into the build folder"
 		from dependenciesConfig
 		into "$buildDir/artifacts"
@@ -100,7 +102,9 @@ artifactsMap.entrySet().each { artifactsEntry ->
 		classifiersExtensions.each { ceTuple ->
 			def archiveFile = file(getArtifactFileName(artifactName, ceTuple[0], ceTuple[1]))
 			artifacts.add(archivesConfig.name, archiveFile) {
-				builtBy copyTask
+				name artifactName
+				classifier ceTuple[0]
+				builtBy archivesCopyTask
 			}
 		}
 	}
@@ -108,7 +112,7 @@ artifactsMap.entrySet().each { artifactsEntry ->
 	// Step 3: Sign the local artifacts
 	if (doSigning) {
 		signing.sign archivesConfig
-		def signTask = project.getTasksByName("signArchives${artifactsEntry.key}", false).first()
+		def signTask = tasks["signArchives${artifactsEntry.key}"]
 		
 		artifactsEntry.value.each { artifactName ->
 			classifiersExtensions.each { ceTuple ->
@@ -117,6 +121,7 @@ artifactsMap.entrySet().each { artifactsEntry ->
 				artifacts.add(signaturesConfig.name, signatureFile) {
 					name artifactName
 					classifier ceTuple[0]
+					extension ceTuple[1] + '.asc'
 					builtBy signTask
 				}
 			}
@@ -124,10 +129,18 @@ artifactsMap.entrySet().each { artifactsEntry ->
 	}
 	
 	// Step 4: Create a publication for each project containing all artifacts and their signatures
-	artifactsEntry.value.each { artifactName ->	
-		publishing.publications.create(artifactName.replace('.', ''), MavenPublication) { publication ->
+	artifactsEntry.value.each { artifactName ->
+		def publicationName = artifactName.replace('.', '')
+		publishing.publications.create(publicationName, MavenPublication) { publication ->
+			if (artifactName.startsWith('org.eclipse.xtend'))
+				publication.groupId 'org.eclipse.xtend'
+			else
+				publication.groupId 'org.eclipse.xtext'
+			publication.artifactId artifactName
+			publication.version property('publish.version')
+			
 			archivesConfig.artifacts.matching { artifact ->
-				artifact.name == artifactName
+				artifact.name == artifactName && artifact.extension != 'pom'
 			}.each { artifact ->
 				publication.artifact artifact
 			}
@@ -139,13 +152,29 @@ artifactsMap.entrySet().each { artifactsEntry ->
 				}
 			}
 		}
+		
+		task "copy${publicationName.capitalize()}Pom" (type: Copy) {
+			description "Copy the POM file for $artifactName to make it consumable by the maven-publish plugin"
+			from getArtifactFileName(artifactName, null, 'pom')
+			into "$buildDir/publications/$publicationName"
+			rename {"pom-default.xml"}
+			dependsOn archivesCopyTask
+		}
 	}
 	
 	task "publish${artifactsEntry.key}" {
 		group "Publishing"
 		description "Publishes all ${artifactsEntry.key} artifacts."
 		artifactsEntry.value.each { artifactName ->
-			dependsOn "publish${artifactName.replace('.', '').capitalize()}PublicationToMavenRepository"
+			dependsOn "publish${artifactName.replace('.', '').capitalize()}PublicationTo$repositoryName"
 		}
 	}
+}
+
+tasks.withType(GenerateMavenPom) {
+	enabled = false
+}
+
+tasks.withType(PublishToMavenRepository) {
+	dependsOn "copy${publication.name.capitalize()}Pom"
 }
