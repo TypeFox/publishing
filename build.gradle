@@ -53,7 +53,7 @@ publishing.repositories {
 			url "https://oss.sonatype.org/content/repositories/snapshots/"
 		else
 			url "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-		if (hasProperty('publishing.userName') && hasProperty('publishing.password')) {
+		if (findProperty('publishing.userName') != null && findProperty('publishing.password') != null) {
 			credentials {
 				username = property('publishing.userName')
 				password = property('publishing.password')
