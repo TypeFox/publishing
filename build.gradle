@@ -3,10 +3,12 @@
  * Copyright 2016 TypeFox GmbH
  */
 
-if (hasProperty('PUBLISH_VERSION'))
-	ext.'publish.version' = property('PUBLISH_VERSION')
-if (!hasProperty('publish.version'))
-	throw new ProjectConfigurationException("The version to be published has to be set with -Ppublish.version=<version>", null)
+if (!hasProperty('publish.version')) {
+	if (hasProperty('PUBLISH_VERSION'))
+		ext.'publish.version' = property('PUBLISH_VERSION')
+	else
+		throw new ProjectConfigurationException("The version to be published has to be set with -Ppublish.version=<version>", null)
+}
 if (!hasProperty('publish.branch'))
 	ext.'publish.branch' = 'master'
 
@@ -35,18 +37,18 @@ apply from: "artifacts.gradle"
 // Definition and configuration of dependencies, artifacts, and tasks
 
 apply plugin: 'signing'
-if (hasProperty('SIGNING_SECRETKEYRINGFILE'))
+if (!hasProperty('signing.secretKeyRingFile') && hasProperty('SIGNING_SECRETKEYRINGFILE'))
 	ext.'signing.secretKeyRingFile' = property('SIGNING_SECRETKEYRINGFILE')
-if (hasProperty('SIGNING_KEYID'))
+if (!hasProperty('signing.keyId') && hasProperty('SIGNING_KEYID'))
 	ext.'signing.keyId' = property('SIGNING_KEYID')
-if (hasProperty('SIGNING_PASSWORD'))
+if (!hasProperty('signing.password') && hasProperty('SIGNING_PASSWORD'))
 	ext.'signing.password' = property('SIGNING_PASSWORD')
 def doSigning = !hasProperty('signing.skip') || property('signing.skip') != 'true'
 
 apply plugin: 'maven-publish'
-if (hasProperty('PUBLISHING_USERNAME'))
+if (!hasProperty('publishing.userName') && hasProperty('PUBLISHING_USERNAME'))
 	ext.'publishing.userName' = property('PUBLISHING_USERNAME')
-if (hasProperty('PUBLISHING_PASSWORD'))
+if (!hasProperty('publishing.password') && hasProperty('PUBLISHING_PASSWORD'))
 	ext.'publishing.password' = property('PUBLISHING_PASSWORD')
 def isSnapshot = property('publish.version').endsWith('-SNAPSHOT')
 publishing.repositories {
@@ -65,6 +67,15 @@ publishing.repositories {
 }
 def repositoryName = "MavenRepository"
 
+def getGroupName = { artifactName ->
+	if (artifactName.startsWith('io.typefox.lsapi'))
+		return 'io.typefox.lsapi'
+	else if (artifactName.startsWith('org.eclipse.xtend'))
+		return 'org.eclipse.xtend'
+	else
+		return 'org.eclipse.xtext'
+}
+
 def classifiersExtensions = [ new Tuple(null, 'jar'), new Tuple('sources', 'jar'), new Tuple('javadoc', 'jar'), new Tuple(null, 'pom') ]
 def getArtifactFileName = { artifactName, classifierName, extensionName ->
 	if (classifierName)
@@ -81,11 +92,14 @@ artifactsMap.entrySet().each { artifactsEntry ->
 	
 	// Step 1: Specify dependencies to Jenkins artifacts
 	artifactsEntry.value.each { artifactName ->
-		def groupName = artifactName.startsWith('org.eclipse.xtend') ? 'org.eclipse.xtend' : 'org.eclipse.xtext'
 		classifiersExtensions.each { ceTuple ->
-			dependencies.add(dependenciesConfig.name,
-				[group: groupName, name: artifactName, version: property('publish.version'), classifier: ceTuple[0], ext: ceTuple[1]]
-			)
+			dependencies.add(dependenciesConfig.name, [
+				group: getGroupName(artifactName),
+				name: artifactName,
+				version: property('publish.version'),
+				classifier: ceTuple[0],
+				ext: ceTuple[1]
+			])
 		}
 	}
 	
@@ -104,8 +118,8 @@ artifactsMap.entrySet().each { artifactsEntry ->
 		classifiersExtensions.each { ceTuple ->
 			def archiveFile = file(getArtifactFileName(artifactName, ceTuple[0], ceTuple[1]))
 			artifacts.add(archivesConfig.name, archiveFile) {
-				name artifactName
-				classifier ceTuple[0]
+				name = artifactName
+				classifier = ceTuple[0]
 				builtBy archivesCopyTask
 			}
 		}
@@ -121,9 +135,9 @@ artifactsMap.entrySet().each { artifactsEntry ->
 				def signatureFile = file(getArtifactFileName(artifactName, ceTuple[0], ceTuple[1]) + '.asc')
 				signTask.outputs.file signatureFile
 				artifacts.add(signaturesConfig.name, signatureFile) {
-					name artifactName
-					classifier ceTuple[0]
-					extension ceTuple[1] + '.asc'
+					name = artifactName
+					classifier = ceTuple[0]
+					extension = ceTuple[1] + '.asc'
 					builtBy signTask
 				}
 			}
@@ -134,12 +148,9 @@ artifactsMap.entrySet().each { artifactsEntry ->
 	artifactsEntry.value.each { artifactName ->
 		def publicationName = artifactName.replace('.', '')
 		publishing.publications.create(publicationName, MavenPublication) { publication ->
-			if (artifactName.startsWith('org.eclipse.xtend'))
-				publication.groupId 'org.eclipse.xtend'
-			else
-				publication.groupId 'org.eclipse.xtext'
-			publication.artifactId artifactName
-			publication.version property('publish.version')
+			publication.groupId = getGroupName(artifactName)
+			publication.artifactId = artifactName
+			publication.version = property('publish.version')
 			
 			archivesConfig.artifacts.matching { artifact ->
 				artifact.name == artifactName && artifact.extension != 'pom'
