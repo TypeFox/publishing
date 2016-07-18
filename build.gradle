@@ -3,6 +3,8 @@
  * Copyright 2016 TypeFox GmbH
  */
 
+if (hasProperty('PUBLISH_VERSION'))
+	ext.'publish.version' = property('PUBLISH_VERSION')
 if (!hasProperty('publish.version'))
 	throw new ProjectConfigurationException("The version to be published has to be set with -Ppublish.version=<version>", null)
 if (!hasProperty('publish.branch'))
