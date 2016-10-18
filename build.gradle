@@ -76,12 +76,22 @@ def getGroupName = { artifactName ->
 		return 'org.eclipse.xtext'
 }
 
+if (!hasProperty('jar.signing') && hasProperty('JAR_SIGNING'))
+	ext.'jar.signing' = property('JAR_SIGNING')
+def doJarSigning = findProperty('jar.signing') == 'true'
+
 def classifiersExtensions = [ new Tuple(null, 'jar'), new Tuple('sources', 'jar'), new Tuple('javadoc', 'jar'), new Tuple(null, 'pom') ]
-def getArtifactFileName = { artifactName, classifierName, extensionName ->
+def getArtifactFileName = { artifactName, classifierName, extensionName, artifactsDir ->
+	if (artifactsDir == null) {
+		if (doJarSigning && classifierName == null && extensionName == 'jar')
+			artifactsDir = 'signedArtifacts'
+		else
+			artifactsDir = 'artifacts'
+	}
 	if (classifierName)
-		"$buildDir/artifacts/$artifactName-${property('publish.version')}-${classifierName}.$extensionName"
+		"$buildDir/$artifactsDir/$artifactName-${property('publish.version')}-${classifierName}.$extensionName"
 	else
-		"$buildDir/artifacts/$artifactName-${property('publish.version')}.$extensionName"
+		"$buildDir/$artifactsDir/$artifactName-${property('publish.version')}.$extensionName"
 }
 
 // Create separate configurations for each source repository
@@ -114,9 +124,24 @@ artifactsMap.entrySet().each { artifactsEntry ->
 		}
 	}
 	
+	// Step 3: Send the artifacts to the JAR signing service
+	if (doJarSigning) {
+		def jarSignTask = task "sign${artifactsEntry.key}Jars" (type: Exec) {
+			description "Send the artifacts of ${artifactsEntry.key} to the JAR signing service"
+			group 'Signing'
+			dependsOn archivesCopyTask
+			executable './jar-sign.sh'
+			args artifactsEntry.value.collect { artifactName -> "$artifactName-${project.property('publish.version')}.jar" }
+			artifactsEntry.value.each { artifactName ->
+				inputs.file getArtifactFileName(artifactName, null, 'jar', 'artifacts')
+				outputs.file getArtifactFileName(artifactName, null, 'jar', 'signedArtifacts')
+			}
+		}
+	}
+	
 	artifactsEntry.value.each { artifactName ->
 		classifiersExtensions.each { ceTuple ->
-			def archiveFile = file(getArtifactFileName(artifactName, ceTuple[0], ceTuple[1]))
+			def archiveFile = file(getArtifactFileName(artifactName, ceTuple[0], ceTuple[1], null))
 			artifacts.add(archivesConfig.name, archiveFile) {
 				name = artifactName
 				classifier = ceTuple[0]
@@ -125,14 +150,14 @@ artifactsMap.entrySet().each { artifactsEntry ->
 		}
 	}
 	
-	// Step 3: Sign the local artifacts
+	// Step 4: Sign the local artifacts with a separate signature file
 	if (doSigning) {
 		signing.sign archivesConfig
 		def signTask = tasks["signArchives${artifactsEntry.key}"]
 		
 		artifactsEntry.value.each { artifactName ->
 			classifiersExtensions.each { ceTuple ->
-				def signatureFile = file(getArtifactFileName(artifactName, ceTuple[0], ceTuple[1]) + '.asc')
+				def signatureFile = file(getArtifactFileName(artifactName, ceTuple[0], ceTuple[1], null) + '.asc')
 				signTask.outputs.file signatureFile
 				artifacts.add(signaturesConfig.name, signatureFile) {
 					name = artifactName
@@ -144,7 +169,7 @@ artifactsMap.entrySet().each { artifactsEntry ->
 		}
 	}
 	
-	// Step 4: Create a publication for each project containing all artifacts and their signatures
+	// Step 5: Create a publication for each project containing all artifacts and their signatures
 	artifactsEntry.value.each { artifactName ->
 		def publicationName = artifactName.replace('.', '')
 		publishing.publications.create(publicationName, MavenPublication) { publication ->
@@ -168,10 +193,13 @@ artifactsMap.entrySet().each { artifactsEntry ->
 		
 		task "copy${publicationName.capitalize()}Pom" (type: Copy) {
 			description "Copy the POM file for $artifactName to make it consumable by the maven-publish plugin"
-			from getArtifactFileName(artifactName, null, 'pom')
+			from getArtifactFileName(artifactName, null, 'pom', null)
 			into "$buildDir/publications/$publicationName"
 			rename {"pom-default.xml"}
-			dependsOn archivesCopyTask
+			if (doJarSigning)
+				dependsOn "sign${artifactsEntry.key}Jars"
+			else
+				dependsOn archivesCopyTask
 		}
 	}
 	
