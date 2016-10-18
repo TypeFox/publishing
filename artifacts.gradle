@@ -39,5 +39,14 @@ ext.artifactsMap = [
 		'org.eclipse.xtext.web',
 		'org.eclipse.xtext.xbase.web',
 		'org.eclipse.xtext.web.servlet'
+	],
+	'XtextMaven': [
+		'xtext-maven-plugin'
+	],
+	'XtextXtend': [
+		'org.eclipse.xtend.core',
+		'org.eclipse.xtend.ide.common',
+		'xtend-maven-plugin',
+		'xtend-archetype'
 	]
 ]

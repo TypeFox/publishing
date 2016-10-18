@@ -28,6 +28,8 @@ repositories {
 	maven { url jenkinsPipelineRepo('xtext-core') }
 	maven { url jenkinsPipelineRepo('xtext-extras') }
 	maven { url jenkinsPipelineRepo('xtext-web') }
+	maven { url jenkinsPipelineRepo('xtext-maven') }
+	maven { url jenkinsPipelineRepo('xtext-xtend') }
 	jcenter()
 }
 
@@ -70,7 +72,7 @@ def repositoryName = "MavenRepository"
 def getGroupName = { artifactName ->
 	if (artifactName.startsWith('io.typefox.lsapi'))
 		return 'io.typefox.lsapi'
-	else if (artifactName.startsWith('org.eclipse.xtend'))
+	else if (artifactName.startsWith('org.eclipse.xtend') || artifactName.startsWith('xtend-'))
 		return 'org.eclipse.xtend'
 	else
 		return 'org.eclipse.xtext'
@@ -94,6 +96,15 @@ def getArtifactFileName = { artifactName, classifierName, extensionName, artifac
 		"$buildDir/$artifactsDir/$artifactName-${property('publish.version')}.$extensionName"
 }
 
+def isExcluded = { artifactName, ceTuple ->
+	def classifierName = ceTuple[0]
+	def extensionName = ceTuple[1]
+	if (artifactName == 'xtend-archetype' && classifierName == 'javadoc')
+		return true
+	else
+		return false
+}
+
 // Create separate configurations for each source repository
 artifactsMap.entrySet().each { artifactsEntry ->
 	def dependenciesConfig = configurations.create("dependencies${artifactsEntry.key}")
@@ -102,7 +113,7 @@ artifactsMap.entrySet().each { artifactsEntry ->
 	
 	// Step 1: Specify dependencies to Jenkins artifacts
 	artifactsEntry.value.each { artifactName ->
-		classifiersExtensions.each { ceTuple ->
+		classifiersExtensions.findAll{ !isExcluded(artifactName,it) }.each { ceTuple ->
 			dependencies.add(dependenciesConfig.name, [
 				group: getGroupName(artifactName),
 				name: artifactName,
@@ -140,7 +151,7 @@ artifactsMap.entrySet().each { artifactsEntry ->
 	}
 	
 	artifactsEntry.value.each { artifactName ->
-		classifiersExtensions.each { ceTuple ->
+		classifiersExtensions.findAll{ !isExcluded(artifactName,it) }.each { ceTuple ->
 			def archiveFile = file(getArtifactFileName(artifactName, ceTuple[0], ceTuple[1], null))
 			artifacts.add(archivesConfig.name, archiveFile) {
 				name = artifactName
@@ -156,7 +167,7 @@ artifactsMap.entrySet().each { artifactsEntry ->
 		def signTask = tasks["signArchives${artifactsEntry.key}"]
 		
 		artifactsEntry.value.each { artifactName ->
-			classifiersExtensions.each { ceTuple ->
+			classifiersExtensions.findAll{ !isExcluded(artifactName,it) }.each { ceTuple ->
 				def signatureFile = file(getArtifactFileName(artifactName, ceTuple[0], ceTuple[1], null) + '.asc')
 				signTask.outputs.file signatureFile
 				artifacts.add(signaturesConfig.name, signatureFile) {
