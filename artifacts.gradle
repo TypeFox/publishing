@@ -29,6 +29,7 @@ ext.artifactsMap = [
 		'org.eclipse.xtext.java',
 		'org.eclipse.xtext.xbase',
 		'org.eclipse.xtext.xbase.ide',
+		'org.eclipse.xtext.xbase.testing',
 		'org.eclipse.xtext.smap',
 		'org.eclipse.xtext.builder.standalone',
 		'org.eclipse.xtext.ecore',
