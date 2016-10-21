@@ -41,13 +41,14 @@ ext.artifactsMap = [
 		'org.eclipse.xtext.web.servlet'
 	],
 	'XtextMaven': [
+		'org.eclipse.xtext.maven.parent',
 		'xtext-maven-plugin'
 	],
 	'XtextXtend': [
 		'org.eclipse.xtend.core',
-		'org.eclipse.xtend.ide.common',
-		'xtend-maven-plugin',
-		'xtend-archetype'
+		'org.eclipse.xtend.ide.common'
+		// 'xtend-maven-plugin',
+		// 'xtend-archetype'
 	]
 ]
 
@@ -55,6 +56,8 @@ ext.isExcluded = { artifactName, ceTuple ->
 	def classifierName = ceTuple[0]
 	def extensionName = ceTuple[1]
 	if (artifactName == 'xtend-archetype' && classifierName == 'javadoc')
+		return true
+	else if (artifactName == 'org.eclipse.xtext.maven.parent' && extensionName == 'jar')
 		return true
 	else
 		return false
