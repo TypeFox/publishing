@@ -45,9 +45,9 @@ ext.artifactsMap = [
 	],
 	'XtextXtend': [
 		'org.eclipse.xtend.core',
-		'org.eclipse.xtend.ide.common'
-//		'xtend-maven-plugin',
-//		'xtend-archetype'
+		'org.eclipse.xtend.ide.common',
+		'xtend-maven-plugin',
+		'xtend-archetype'
 	]
 ]
 
