@@ -50,3 +50,12 @@ ext.artifactsMap = [
 		'xtend-archetype'
 	]
 ]
+
+ext.isExcluded = { artifactName, ceTuple ->
+	def classifierName = ceTuple[0]
+	def extensionName = ceTuple[1]
+	if (artifactName == 'xtend-archetype' && classifierName == 'javadoc')
+		return true
+	else
+		return false
+}

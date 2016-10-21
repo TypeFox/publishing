@@ -9,9 +9,12 @@ if (!hasProperty('publish.version')) {
 	else
 		throw new ProjectConfigurationException("The version to be published has to be set with -Ppublish.version=<version>", null)
 }
-if (!hasProperty('publish.branch'))
-	ext.'publish.branch' = 'master'
-
+if (!hasProperty('publish.branch')) {
+	if (hasProperty('PUBLISH_BRANCH'))
+		ext.'publish.branch' = property('PUBLISH_BRANCH')
+	else
+		ext.'publish.branch' = 'master'
+}
 
 //--------------------------------------------------------------------
 // Source repositories for fetching artifacts built by Jenkins
@@ -94,15 +97,6 @@ def getArtifactFileName = { artifactName, classifierName, extensionName, artifac
 		"$buildDir/$artifactsDir/$artifactName-${property('publish.version')}-${classifierName}.$extensionName"
 	else
 		"$buildDir/$artifactsDir/$artifactName-${property('publish.version')}.$extensionName"
-}
-
-def isExcluded = { artifactName, ceTuple ->
-	def classifierName = ceTuple[0]
-	def extensionName = ceTuple[1]
-	if (artifactName == 'xtend-archetype' && classifierName == 'javadoc')
-		return true
-	else
-		return false
 }
 
 // Create separate configurations for each source repository
