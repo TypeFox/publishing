@@ -7,10 +7,15 @@
  *******************************************************************************/
 package io.typefox.publishing
 
+import java.io.File
+import org.apache.maven.settings.building.DefaultSettingsBuilderFactory
+import org.apache.maven.settings.building.DefaultSettingsBuildingRequest
+import org.apache.maven.settings.building.SettingsBuildingException
 import org.gradle.api.GradleScriptException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ConfigurablePublishArtifact
+import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.GenerateMavenPom
@@ -18,6 +23,9 @@ import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Exec
 import org.gradle.plugins.signing.SigningExtension
+import org.sonatype.plexus.components.cipher.DefaultPlexusCipher
+import org.sonatype.plexus.components.sec.dispatcher.DefaultSecDispatcher
+import org.sonatype.plexus.components.sec.dispatcher.SecUtil
 
 class PublishingPlugin implements Plugin<Project> {
 	
@@ -32,11 +40,13 @@ class PublishingPlugin implements Plugin<Project> {
 		this.project = project
 		this.osspub = project.extensions.create('osspub', PublishingPluginExtension)
 		project.afterEvaluate[
-			configure()
+			loadMavenSettings()
+			configureGlobals()
+			configureTasks()
 		]
 	}
 	
-	private def void configure() {
+	private def void configureGlobals() {
 		// Configure version of projects to publish
 		if (hasProperty('publish.version'))
 			osspub.version(property('publish.version') as String)
@@ -46,8 +56,12 @@ class PublishingPlugin implements Plugin<Project> {
 			throw new GradleScriptException('The version to be published has to be set with -Ppublish.version=<version>', null)
 		
 		// Configure signing credentials
-		if (!hasProperty('signing.secretKeyRingFile') && hasProperty('SIGNING_SECRETKEYRINGFILE'))
-			ext.set('signing.secretKeyRingFile', property('SIGNING_SECRETKEYRINGFILE'))
+		if (!hasProperty('signing.secretKeyRingFile')) {
+			if (hasProperty('SIGNING_SECRETKEYRINGFILE'))
+				ext.set('signing.secretKeyRingFile', property('SIGNING_SECRETKEYRINGFILE'))
+			else
+				ext.set('signing.secretKeyRingFile', new File(System.getProperty('user.home'), '.gnupg/secring.gpg').toString)
+		}
 		if (!hasProperty('signing.keyId') && hasProperty('SIGNING_KEYID'))
 			ext.set('signing.keyId', property('SIGNING_KEYID'))
 		if (!hasProperty('signing.password') && hasProperty('SIGNING_PASSWORD'))
@@ -82,8 +96,9 @@ class PublishingPlugin implements Plugin<Project> {
 				}
 			]
 		]
-		
-		// Create separate configurations for each source repository
+	}
+	
+	private def void configureTasks() {
 		for (pubProject : osspub.projects) {
 			if (pubProject.name.nullOrEmpty)
 				throw new GradleScriptException('Project name must not be undefined.', null)
@@ -120,7 +135,7 @@ class PublishingPlugin implements Plugin<Project> {
 		
 			// Step 3: Send the artifacts to the JAR signing service
 			if (osspub.signJars) {
-				if (osspub.jarSigner.nullOrEmpty)
+				if (osspub.jarSigner === null)
 					throw new GradleScriptException('JAR signing was enabled, but no signer executable was configured.', null)
 				task(#{'type' -> Exec}, '''sign«pubProject.name»Jars''') => [ task |
 					val it = task as Exec
@@ -233,6 +248,55 @@ class PublishingPlugin implements Plugin<Project> {
 	
 	private def boolean excludes(PublishingArtifact pubArtifact, Pair<String, String> cePair) {
 		pubArtifact.excludedClassifiers.contains(cePair.key) || pubArtifact.excludedExtensions.contains(cePair.value)
+	}
+	
+	private def void loadMavenSettings() {
+		try {
+			// Load settings.xml
+			val settingsBuildingRequest = new DefaultSettingsBuildingRequest
+			settingsBuildingRequest.userSettingsFile = osspub.userMavenSettings
+			settingsBuildingRequest.globalSettingsFile = osspub.globalMavenSettings
+			settingsBuildingRequest.systemProperties = System.properties
+			val settingsBuilder = new DefaultSettingsBuilderFactory().newInstance()
+			val mavenSettings = settingsBuilder.build(settingsBuildingRequest).effectiveSettings
+			
+			// Set up for decryption
+			val cipher = new DefaultPlexusCipher
+			val mavenSecurityFile = osspub.mavenSecurityFile
+			val decryptionKey = if (mavenSecurityFile.exists && !mavenSecurityFile.isDirectory) {
+				val settingsSecurity = SecUtil.read(mavenSecurityFile.toString, true)
+				cipher.decryptDecorated(settingsSecurity.master, DefaultSecDispatcher.SYSTEM_PROPERTY_SEC_LOCATION)
+			}
+			
+			// Apply username and password from the Maven settings to all matching repositories
+			repositories.filter(MavenArtifactRepository).forEach [ repository |
+				val server = mavenSettings.servers.filter[username !== null && password !== null].findFirst[id == repository.name]
+				if (server !== null) {
+					repository.credentials [
+						username = server.username
+						if (cipher.isEncryptedString(server.password)) {
+							if (decryptionKey === null)
+								throw new GradleScriptException('Missing settings-security.xml file.', null)
+							password = cipher.decryptDecorated(server.password, decryptionKey)
+						} else
+							password = server.password
+					]
+				}
+			]
+			
+			// Get the GPG key for creating signature files from the Maven settings
+			val gpgServer = mavenSettings.servers.filter[passphrase !== null].findFirst[id == 'gpg.passphrase']
+			if (gpgServer !== null) {
+				if (cipher.isEncryptedString(gpgServer.passphrase)) {
+					if (decryptionKey === null)
+						throw new GradleScriptException('Missing settings-security.xml file.', null)
+					ext.set('signing.password', cipher.decryptDecorated(gpgServer.passphrase, decryptionKey))
+				} else
+					ext.set('signing.password', gpgServer.passphrase)
+			}
+		} catch (SettingsBuildingException e) {
+			throw new GradleScriptException('Error while loading Maven settings.', e)
+		}
 	}
 	
 	private def ext() {

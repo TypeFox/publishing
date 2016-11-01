@@ -8,6 +8,7 @@
 package io.typefox.publishing
 
 import groovy.lang.Closure
+import java.io.File
 import java.util.List
 import org.eclipse.xtend.lib.annotations.Accessors
 
@@ -28,9 +29,15 @@ class PublishingPluginExtension {
 	
 	boolean signJars = false
 	
-	String jarSigner
+	File jarSigner
 	
 	List<PublishingProject> projects = newArrayList
+	
+	File userMavenSettings = new File(System.getProperty('user.home'), '.m2/settings.xml')
+	
+	File globalMavenSettings = new File(System.getenv('M2_HOME'), 'conf/settings.xml')
+	
+	File mavenSecurityFile = new File(System.getProperty('user.home'), '/.m2/settings-security.xml')
 	
 	def void version(Object input) {
 		this.version = input.toString
@@ -67,7 +74,10 @@ class PublishingPluginExtension {
 	}
 	
 	def void jarSigner(Object input) {
-		this.jarSigner = input.toString
+		if (input instanceof File)
+			this.jarSigner = input
+		else
+			this.jarSigner = new File(input.toString)
 	}
 	
 	def project(Closure<PublishingProject> configure) {
@@ -77,6 +87,27 @@ class PublishingPluginExtension {
 		configure.call()
 		projects += result
 		return result
+	}
+	
+	def userMavenSettings(Object input) {
+		if (input instanceof File)
+			this.userMavenSettings = input
+		else
+			this.userMavenSettings = new File(input.toString)
+	}
+	
+	def globalMavenSettings(Object input) {
+		if (input instanceof File)
+			this.globalMavenSettings = input
+		else
+			this.globalMavenSettings = new File(input.toString)
+	}
+	
+	def mavenSecurityFile(Object input) {
+		if (input instanceof File)
+			this.mavenSecurityFile = input
+		else
+			this.mavenSecurityFile = new File(input.toString)
 	}
 	
 }
