@@ -52,10 +52,14 @@ class PublishingPlugin implements Plugin<Project> {
 			ext.set('signing.keyId', property('SIGNING_KEYID'))
 		if (!hasProperty('signing.password') && hasProperty('SIGNING_PASSWORD'))
 			ext.set('signing.password', property('SIGNING_PASSWORD'))
-		if (hasProperty('signing.skip'))
-			osspub.doSigning(property('signing.skip') != 'true')
-		else if (hasProperty('SIGNING_SKIP'))
-			osspub.doSigning(property('SIGNING_SKIP') != 'true')
+		if (hasProperty('signing.createSignatures'))
+			osspub.createSignatures(property('signing.createSignatures'))
+		else if (hasProperty('SIGNING_CREATE_SIGNATURES'))
+			osspub.createSignatures(property('SIGNING_CREATE_SIGNATURES'))
+		if (hasProperty('signing.signJars'))
+			osspub.signJars(property('signing.signJars'))
+		else if (hasProperty('SIGNING_SIGN_JARS'))
+			osspub.signJars(property('SIGNING_SIGN_JARS'))
 		
 		// Configure remote repositories
 		if (!hasProperty('publishing.userName') && hasProperty('PUBLISHING_USERNAME'))
@@ -115,7 +119,9 @@ class PublishingPlugin implements Plugin<Project> {
 			]
 		
 			// Step 3: Send the artifacts to the JAR signing service
-			if (osspub.doSigning && !osspub.jarSigner.nullOrEmpty) {
+			if (osspub.signJars) {
+				if (osspub.jarSigner.nullOrEmpty)
+					throw new GradleScriptException('JAR signing was enabled, but no signer executable was configured.', null)
 				task(#{'type' -> Exec}, '''sign«pubProject.name»Jars''') => [ task |
 					val it = task as Exec
 					description = '''Send the artifacts of «pubProject.name» to the JAR signing service'''
@@ -143,7 +149,7 @@ class PublishingPlugin implements Plugin<Project> {
 			}
 			
 			// Step 4: Sign the local artifacts with a separate signature file
-			if (osspub.doSigning) {
+			if (osspub.createSignatures) {
 				signing.sign(archivesConfig)
 				val signTask = tasks.getByName('''signArchives«pubProject.name»''')
 		
@@ -173,7 +179,7 @@ class PublishingPlugin implements Plugin<Project> {
 					archivesConfig.artifacts.filter[name == pubArtifact.name && extension != 'pom'].forEach[
 						publication.artifact(it)
 					]
-					if (osspub.doSigning) {
+					if (osspub.createSignatures) {
 						signaturesConfig.artifacts.filter[name == pubArtifact.name].forEach[
 							publication.artifact(it)
 						]
@@ -186,7 +192,7 @@ class PublishingPlugin implements Plugin<Project> {
 					from = pubArtifact.getFileName(null, 'pom', null)
 					into = '''«buildDir»/publications/«publicationName»'''
 					rename('.*', 'pom-default.xml')
-					if (osspub.doSigning && !osspub.jarSigner.nullOrEmpty)
+					if (osspub.signJars)
 						dependsOn('''sign«pubProject.name»Jars''')
 					else
 						dependsOn(archivesCopyTask)
@@ -214,7 +220,7 @@ class PublishingPlugin implements Plugin<Project> {
 	private def String getFileName(PublishingArtifact pubArtifact, String classifierName, String extensionName,
 			String artifactsDir) {
 		'''«buildDir»/«artifactsDir ?: (
-			if (osspub.doSigning && !osspub.jarSigner.nullOrEmpty && classifierName === null && extensionName == 'jar')
+			if (osspub.signJars && classifierName === null && extensionName == 'jar')
 				'signedArtifacts'
 			else
 				'artifacts'

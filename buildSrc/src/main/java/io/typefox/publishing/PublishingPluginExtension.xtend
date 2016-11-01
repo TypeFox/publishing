@@ -24,41 +24,50 @@ class PublishingPluginExtension {
 	
 	String snapshotUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
 	
-	boolean doSigning = true
+	boolean createSignatures = true
+	
+	boolean signJars = false
 	
 	String jarSigner
 	
 	List<PublishingProject> projects = newArrayList
 	
-	def void version(Object version) {
-		this.version = version.toString
+	def void version(Object input) {
+		this.version = input.toString
 	}
 	
-	def void branch(Object branch) {
-		this.branch = branch.toString
+	def void branch(Object input) {
+		this.branch = input.toString
 	}
 	
-	def void repositoryName(Object repositoryName) {
-		this.repositoryName = repositoryName.toString
+	def void repositoryName(Object input) {
+		this.repositoryName = input.toString
 	}
 	
-	def void stagingUrl(Object stagingUrl) {
-		this.stagingUrl = stagingUrl.toString
+	def void stagingUrl(Object input) {
+		this.stagingUrl = input.toString
 	}
 	
-	def void snapshotUrl(Object snapshotUrl) {
-		this.snapshotUrl = snapshotUrl.toString
+	def void snapshotUrl(Object input) {
+		this.snapshotUrl = input.toString
 	}
 	
-	def void doSigning(Object doSigning) {
-		if (doSigning instanceof Boolean)
-			this.doSigning = doSigning
-		else if (doSigning instanceof String)
-			this.doSigning = Boolean.valueOf(doSigning)
+	def void createSignatures(Object input) {
+		if (input instanceof Boolean)
+			this.createSignatures = input
+		else if (input instanceof String)
+			this.createSignatures = Boolean.valueOf(input)
 	}
 	
-	def void jarSigner(Object jarSigner) {
-		this.jarSigner = jarSigner.toString
+	def void signJars(Object input) {
+		if (input instanceof Boolean)
+			this.signJars = input
+		else if (input instanceof String)
+			this.signJars = Boolean.valueOf(input)
+	}
+	
+	def void jarSigner(Object input) {
+		this.jarSigner = input.toString
 	}
 	
 	def project(Closure<PublishingProject> configure) {

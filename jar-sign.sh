@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# JAR signing script that follows the instructions at
+#   https://wiki.eclipse.org/JAR_Signing
+# This works only when invoked from the Eclipse build infrastructure.
+
 BUILD_DIR="build"
 mkdir -p $BUILD_DIR/signedArtifacts
 
