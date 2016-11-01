@@ -1,0 +1,34 @@
+buildscript {
+	repositories {
+		jcenter()
+	}
+	dependencies {
+		classpath 'org.xtext:xtext-gradle-plugin:1.0.2'
+	}
+}
+
+ext.xtextVersion = '2.10.0'
+ext.mavenVersion = '3.3.9'
+
+repositories {
+	jcenter()
+}
+
+apply plugin: 'java'
+apply plugin: 'org.xtext.xtend'
+apply plugin: 'eclipse'
+
+sourceCompatibility = '1.6'
+targetCompatibility = '1.6'
+
+dependencies {
+	compile gradleApi()
+	compile "org.eclipse.xtend:org.eclipse.xtend.lib:$xtextVersion"
+	compile "org.apache.maven:maven-settings:$mavenVersion"
+	compile "org.apache.maven:maven-settings-builder:$mavenVersion"
+	compile "org.apache.maven:maven-model-builder:$mavenVersion"
+	compile "org.apache.maven:maven-model:$mavenVersion"
+	compile "org.apache.maven:maven-core:$mavenVersion"
+	compile "org.sonatype.plexus:plexus-cipher:1.4"
+	compile "org.sonatype.plexus:plexus-sec-dispatcher:1.3"
+}

@@ -3,62 +3,81 @@
  * Copyright 2016 TypeFox GmbH
  */
 
-ext.artifactsMap = [
-	'LsApi': [
-		'io.typefox.lsapi',
-		'io.typefox.lsapi.annotations',
-		'io.typefox.lsapi.services'
-	],
-	'XtextLib': [
-		'org.eclipse.xtext.xbase.lib',
-		'org.eclipse.xtend.lib',
-		'org.eclipse.xtend.lib.macro',
-		'org.eclipse.xtext.xbase.lib.gwt',
-		'org.eclipse.xtend.lib.gwt'
-	],
-	'XtextCore': [
-		'org.eclipse.xtext',
-		'org.eclipse.xtext.ide',
-		'org.eclipse.xtext.util',
-		'org.eclipse.xtext.testing',
-		'org.eclipse.xtext.xtext.generator',
-		'org.eclipse.xtext.xtext.wizard'
-	],
-	'XtextExtras': [
-		'org.eclipse.xtext.common.types',
-		'org.eclipse.xtext.java',
-		'org.eclipse.xtext.xbase',
-		'org.eclipse.xtext.xbase.ide',
-		'org.eclipse.xtext.xbase.testing',
-		'org.eclipse.xtext.smap',
-		'org.eclipse.xtext.builder.standalone',
-		'org.eclipse.xtext.ecore',
-		'org.eclipse.xtext.generator'
-	],
-	'XtextWeb': [
-		'org.eclipse.xtext.web',
-		'org.eclipse.xtext.xbase.web',
-		'org.eclipse.xtext.web.servlet'
-	],
-	'XtextMaven': [
-		'org.eclipse.xtext.maven.parent',
-		'xtext-maven-plugin'
-	],
-	'XtextXtend': [
-		'org.eclipse.xtend.core',
-		'org.eclipse.xtend.ide.common'
-		// 'xtend-maven-plugin',
-		// 'xtend-archetype'
-	]
-]
-
-ext.isExcluded = { artifactName, ceTuple ->
-	def classifierName = ceTuple[0]
-	def extensionName = ceTuple[1]
-	if (artifactName == 'xtend-archetype' && classifierName == 'javadoc')
-		return true
-	else if (artifactName == 'org.eclipse.xtext.maven.parent' && extensionName == 'jar')
-		return true
-	else
-		return false
+osspub {
+	project {
+		name 'LsApi'
+		group 'io.typefox.lsapi'
+		artifact 'io.typefox.lsapi'
+		artifact 'io.typefox.lsapi.annotations'
+		artifact 'io.typefox.lsapi.services'
+	}
+	project {
+		name 'XtextLib'
+		group 'org.eclipse.xtext'
+		artifact 'org.eclipse.xtext.xbase.lib'
+		artifact 'org.eclipse.xtext.xbase.lib.gwt'
+		artifact {
+			name 'org.eclipse.xtend.lib'
+			group 'org.eclipse.xtend'
+		}
+		artifact {
+			name 'org.eclipse.xtend.lib.macro'
+			group 'org.eclipse.xtend'
+		}
+		artifact {
+			name 'org.eclipse.xtend.lib.gwt'
+			group 'org.eclipse.xtend'
+		}
+	}
+	project {
+		name 'XtextCore'
+		group 'org.eclipse.xtext'
+		artifact 'org.eclipse.xtext'
+		artifact 'org.eclipse.xtext.ide'
+		artifact 'org.eclipse.xtext.util'
+		artifact 'org.eclipse.xtext.testing'
+		artifact 'org.eclipse.xtext.xtext.generator'
+		artifact 'org.eclipse.xtext.xtext.wizard'
+	}
+	project {
+		name 'XtextExtras'
+		group 'org.eclipse.xtext'
+		artifact 'org.eclipse.xtext.common.types'
+		artifact 'org.eclipse.xtext.java'
+		artifact 'org.eclipse.xtext.xbase'
+		artifact 'org.eclipse.xtext.xbase.ide'
+		artifact 'org.eclipse.xtext.xbase.testing'
+		artifact 'org.eclipse.xtext.smap'
+		artifact 'org.eclipse.xtext.builder.standalone'
+		artifact 'org.eclipse.xtext.ecore'
+		artifact 'org.eclipse.xtext.generator'
+	}
+	project {
+		name 'XtextWeb'
+		group 'org.eclipse.xtext'
+		artifact 'org.eclipse.xtext.web'
+		artifact 'org.eclipse.xtext.xbase.web'
+		artifact 'org.eclipse.xtext.web.servlet'
+	}
+	project {
+		name 'XtextMaven'
+		group 'org.eclipse.xtext'
+		artifact {
+			name 'org.eclipse.xtext.maven.parent'
+			excludeExtension 'jar'
+		}
+		artifact 'xtext-maven-plugin'
+	}
+	project {
+		name 'XtextXtend'
+		group 'org.eclipse.xtend'
+		artifact 'org.eclipse.xtend.core'
+		artifact 'org.eclipse.xtend.ide.common'
+		//artifact 'xtend-maven-plugin'
+		//artifact {
+		//	name 'xtend-archetype'
+		//	excludeClassifier 'javadoc'
+		//}
+		//artifact 'xtend-android-archetype'
+	}
 }

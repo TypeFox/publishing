@@ -1,23 +1,17 @@
-/* 
+/*
  * Publishing script for open-source projects
  * Copyright 2016 TypeFox GmbH
  */
 
-if (!hasProperty('publish.version')) {
-	if (hasProperty('PUBLISH_VERSION'))
-		ext.'publish.version' = property('PUBLISH_VERSION')
-	else
-		throw new ProjectConfigurationException("The version to be published has to be set with -Ppublish.version=<version>", null)
-}
+//--------------------------------------------------------------------
+// Source repositories for fetching artifacts built by Jenkins
+
 if (!hasProperty('publish.branch')) {
 	if (hasProperty('PUBLISH_BRANCH'))
 		ext.'publish.branch' = property('PUBLISH_BRANCH')
 	else
 		ext.'publish.branch' = 'master'
 }
-
-//--------------------------------------------------------------------
-// Source repositories for fetching artifacts built by Jenkins
 
 def jenkinsRepo = { jobName ->
 	"http://services.typefox.io/open-source/jenkins/job/$jobName/lastStableBuild/artifact/build/maven-repository/"
@@ -36,191 +30,9 @@ repositories {
 	jcenter()
 }
 
-apply from: "artifacts.gradle"
-
 //--------------------------------------------------------------------
-// Definition and configuration of dependencies, artifacts, and tasks
+// Configuration of publishing plugin
 
-apply plugin: 'signing'
-if (!hasProperty('signing.secretKeyRingFile') && hasProperty('SIGNING_SECRETKEYRINGFILE'))
-	ext.'signing.secretKeyRingFile' = property('SIGNING_SECRETKEYRINGFILE')
-if (!hasProperty('signing.keyId') && hasProperty('SIGNING_KEYID'))
-	ext.'signing.keyId' = property('SIGNING_KEYID')
-if (!hasProperty('signing.password') && hasProperty('SIGNING_PASSWORD'))
-	ext.'signing.password' = property('SIGNING_PASSWORD')
-def doSigning = !hasProperty('signing.skip') || property('signing.skip') != 'true'
+apply plugin: io.typefox.publishing.PublishingPlugin.class
 
-apply plugin: 'maven-publish'
-if (!hasProperty('publishing.userName') && hasProperty('PUBLISHING_USERNAME'))
-	ext.'publishing.userName' = property('PUBLISHING_USERNAME')
-if (!hasProperty('publishing.password') && hasProperty('PUBLISHING_PASSWORD'))
-	ext.'publishing.password' = property('PUBLISHING_PASSWORD')
-def isSnapshot = property('publish.version').endsWith('-SNAPSHOT')
-publishing.repositories {
-	maven {
-		if (isSnapshot)
-			url "https://oss.sonatype.org/content/repositories/snapshots/"
-		else
-			url "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-		if (findProperty('publishing.userName') != null && findProperty('publishing.password') != null) {
-			credentials {
-				username = property('publishing.userName')
-				password = property('publishing.password')
-			}
-		}
-	}
-}
-def repositoryName = "MavenRepository"
-
-def getGroupName = { artifactName ->
-	if (artifactName.startsWith('io.typefox.lsapi'))
-		return 'io.typefox.lsapi'
-	else if (artifactName.startsWith('org.eclipse.xtend') || artifactName.startsWith('xtend-'))
-		return 'org.eclipse.xtend'
-	else
-		return 'org.eclipse.xtext'
-}
-
-if (!hasProperty('jar.signing') && hasProperty('JAR_SIGNING'))
-	ext.'jar.signing' = property('JAR_SIGNING')
-def doJarSigning = findProperty('jar.signing') == 'true'
-
-def classifiersExtensions = [ new Tuple(null, 'jar'), new Tuple('sources', 'jar'), new Tuple('javadoc', 'jar'), new Tuple(null, 'pom') ]
-def getArtifactFileName = { artifactName, classifierName, extensionName, artifactsDir ->
-	if (artifactsDir == null) {
-		if (doJarSigning && classifierName == null && extensionName == 'jar')
-			artifactsDir = 'signedArtifacts'
-		else
-			artifactsDir = 'artifacts'
-	}
-	if (classifierName)
-		"$buildDir/$artifactsDir/$artifactName-${property('publish.version')}-${classifierName}.$extensionName"
-	else
-		"$buildDir/$artifactsDir/$artifactName-${property('publish.version')}.$extensionName"
-}
-
-// Create separate configurations for each source repository
-artifactsMap.entrySet().each { artifactsEntry ->
-	def dependenciesConfig = configurations.create("dependencies${artifactsEntry.key}")
-	def archivesConfig = configurations.create("archives${artifactsEntry.key}")
-	def signaturesConfig = configurations.create("signatures${artifactsEntry.key}")
-	
-	// Step 1: Specify dependencies to Jenkins artifacts
-	artifactsEntry.value.each { artifactName ->
-		classifiersExtensions.findAll{ !isExcluded(artifactName,it) }.each { ceTuple ->
-			dependencies.add(dependenciesConfig.name, [
-				group: getGroupName(artifactName),
-				name: artifactName,
-				version: property('publish.version'),
-				classifier: ceTuple[0],
-				ext: ceTuple[1]
-			])
-		}
-	}
-	
-	// Step 2: Copy the dependencies to the local build folder
-	def archivesCopyTask = task "copy${artifactsEntry.key}" (type: Copy) {
-		description "Copy the built artifacts of ${artifactsEntry.key} into the build folder"
-		from dependenciesConfig
-		into "$buildDir/artifacts"
-		artifactsEntry.value.each { artifactName ->
-			include "**/$artifactName-${project.property('publish.version')}*.jar"
-			include "**/$artifactName-${project.property('publish.version')}.pom"
-		}
-	}
-	
-	// Step 3: Send the artifacts to the JAR signing service
-	if (doJarSigning) {
-		def jarSignTask = task "sign${artifactsEntry.key}Jars" (type: Exec) {
-			description "Send the artifacts of ${artifactsEntry.key} to the JAR signing service"
-			group 'Signing'
-			dependsOn archivesCopyTask
-			executable './jar-sign.sh'
-			args artifactsEntry.value.collect { artifactName -> "$artifactName-${project.property('publish.version')}.jar" }
-			artifactsEntry.value.each { artifactName ->
-				inputs.file getArtifactFileName(artifactName, null, 'jar', 'artifacts')
-				outputs.file getArtifactFileName(artifactName, null, 'jar', 'signedArtifacts')
-			}
-		}
-	}
-	
-	artifactsEntry.value.each { artifactName ->
-		classifiersExtensions.findAll{ !isExcluded(artifactName,it) }.each { ceTuple ->
-			def archiveFile = file(getArtifactFileName(artifactName, ceTuple[0], ceTuple[1], null))
-			artifacts.add(archivesConfig.name, archiveFile) {
-				name = artifactName
-				classifier = ceTuple[0]
-				builtBy archivesCopyTask
-			}
-		}
-	}
-	
-	// Step 4: Sign the local artifacts with a separate signature file
-	if (doSigning) {
-		signing.sign archivesConfig
-		def signTask = tasks["signArchives${artifactsEntry.key}"]
-		
-		artifactsEntry.value.each { artifactName ->
-			classifiersExtensions.findAll{ !isExcluded(artifactName,it) }.each { ceTuple ->
-				def signatureFile = file(getArtifactFileName(artifactName, ceTuple[0], ceTuple[1], null) + '.asc')
-				signTask.outputs.file signatureFile
-				artifacts.add(signaturesConfig.name, signatureFile) {
-					name = artifactName
-					classifier = ceTuple[0]
-					extension = ceTuple[1] + '.asc'
-					builtBy signTask
-				}
-			}
-		}
-	}
-	
-	// Step 5: Create a publication for each project containing all artifacts and their signatures
-	artifactsEntry.value.each { artifactName ->
-		def publicationName = artifactName.replace('.', '')
-		publishing.publications.create(publicationName, MavenPublication) { publication ->
-			publication.groupId = getGroupName(artifactName)
-			publication.artifactId = artifactName
-			publication.version = property('publish.version')
-			
-			archivesConfig.artifacts.matching { artifact ->
-				artifact.name == artifactName && artifact.extension != 'pom'
-			}.each { artifact ->
-				publication.artifact artifact
-			}
-			if (doSigning) {
-				signaturesConfig.artifacts.matching { artifact ->
-					artifact.name == artifactName
-				}.each { artifact ->
-					publication.artifact artifact
-				}
-			}
-		}
-		
-		task "copy${publicationName.capitalize()}Pom" (type: Copy) {
-			description "Copy the POM file for $artifactName to make it consumable by the maven-publish plugin"
-			from getArtifactFileName(artifactName, null, 'pom', null)
-			into "$buildDir/publications/$publicationName"
-			rename {"pom-default.xml"}
-			if (doJarSigning)
-				dependsOn "sign${artifactsEntry.key}Jars"
-			else
-				dependsOn archivesCopyTask
-		}
-	}
-	
-	task "publish${artifactsEntry.key}" {
-		group "Publishing"
-		description "Publishes all ${artifactsEntry.key} artifacts."
-		artifactsEntry.value.each { artifactName ->
-			dependsOn "publish${artifactName.replace('.', '').capitalize()}PublicationTo$repositoryName"
-		}
-	}
-}
-
-tasks.withType(GenerateMavenPom) {
-	enabled = false
-}
-
-tasks.withType(PublishToMavenRepository) {
-	dependsOn "copy${publication.name.capitalize()}Pom"
-}
+apply from: "artifacts.gradle"
