@@ -11,7 +11,7 @@ import groovy.lang.Closure
 import java.util.List
 import org.eclipse.xtend.lib.annotations.Accessors
 
-@Accessors
+@Accessors(PUBLIC_GETTER)
 class PublishingPluginExtension {
 	
 	String version
@@ -26,9 +26,40 @@ class PublishingPluginExtension {
 	
 	boolean doSigning = true
 	
-	boolean doJarSigning = false
+	String jarSigner
 	
 	List<PublishingProject> projects = newArrayList
+	
+	def void version(Object version) {
+		this.version = version.toString
+	}
+	
+	def void branch(Object branch) {
+		this.branch = branch.toString
+	}
+	
+	def void repositoryName(Object repositoryName) {
+		this.repositoryName = repositoryName.toString
+	}
+	
+	def void stagingUrl(Object stagingUrl) {
+		this.stagingUrl = stagingUrl.toString
+	}
+	
+	def void snapshotUrl(Object snapshotUrl) {
+		this.snapshotUrl = snapshotUrl.toString
+	}
+	
+	def void doSigning(Object doSigning) {
+		if (doSigning instanceof Boolean)
+			this.doSigning = doSigning
+		else if (doSigning instanceof String)
+			this.doSigning = Boolean.valueOf(doSigning)
+	}
+	
+	def void jarSigner(Object jarSigner) {
+		this.jarSigner = jarSigner.toString
+	}
 	
 	def project(Closure<PublishingProject> configure) {
 		val result = new PublishingProject
