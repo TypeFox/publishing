@@ -38,5 +38,6 @@ apply plugin: io.typefox.publishing.PublishingPlugin.class
 apply from: "artifacts.gradle"
 
 osspub {
+	repositoryName 'ossrh'
 	jarSigner file('jar-sign.sh')
 }
