@@ -51,23 +51,25 @@ class EclipsePublishing {
 				into('''«buildDir»/p2/repository''')
 			]
 			
-			val signP2PluginsTask = task(#{'type' -> JarSignTask}, '''sign«repository.name»P2Plugins''') => [ task |
-				val it = task as JarSignTask
-				group = 'Signing'
-				description = 'Send the plugins of the P2 repository to the JAR signing service'
-				dependsOn(unzipP2Task)
-				inputDir = file('''«buildDir»/p2/repository/plugins''')
-				outputDir = file('''«buildDir»/build-result/p2.repository/plugins''')
-			]
-			
-			val signP2FeaturesTask = task(#{'type' -> JarSignTask}, '''sign«repository.name»P2Features''') => [ task |
-				val it = task as JarSignTask
-				group = 'Signing'
-				description = 'Send the features of the P2 repository to the JAR signing service'
-				dependsOn(unzipP2Task)
-				inputDir = file('''«buildDir»/p2/repository/features''')
-				outputDir = file('''«buildDir»/build-result/p2.repository/features''')
-			]
+			if (osspub.signJars) {
+				task(#{'type' -> JarSignTask}, '''sign«repository.name»P2Plugins''') => [ task |
+					val it = task as JarSignTask
+					group = 'Signing'
+					description = 'Send the plugins of the P2 repository to the JAR signing service'
+					dependsOn(unzipP2Task)
+					inputDir = file('''«buildDir»/p2/repository/plugins''')
+					outputDir = file('''«buildDir»/build-result/p2.repository/plugins''')
+				]
+				
+				task(#{'type' -> JarSignTask}, '''sign«repository.name»P2Features''') => [ task |
+					val it = task as JarSignTask
+					group = 'Signing'
+					description = 'Send the features of the P2 repository to the JAR signing service'
+					dependsOn(unzipP2Task)
+					inputDir = file('''«buildDir»/p2/repository/features''')
+					outputDir = file('''«buildDir»/build-result/p2.repository/features''')
+				]
+			}
 			
 			val copyP2MetadataTask = task(#{'type' -> Copy}, '''copy«repository.name»P2Metadata''') => [ task |
 				val it = task as Copy
@@ -76,7 +78,8 @@ class EclipsePublishing {
 				dependsOn(unzipP2Task)
 				from('''«buildDir»/p2/repository''')
 				into('''«buildDir»/build-result/p2.repository''')
-				include('*')
+				if (osspub.signJars)
+					include('*')
 			]
 			
 			val copyEclipsePublisherTask = task(#{'type' -> Copy}, '''copyEclipse«repository.name»PublisherScripts''') => [ task |
@@ -104,7 +107,9 @@ class EclipsePublishing {
 			task('''publishEclipse«repository.name»''') => [
 				group = 'Eclipse'
 				description = 'Set up the build result directory used for Eclipse publishing'
-				dependsOn(signP2PluginsTask, signP2FeaturesTask, copyP2MetadataTask, generatePropertiesTask)
+				if (osspub.signJars)
+					dependsOn('''sign«repository.name»P2Plugins''', '''sign«repository.name»P2Features''')
+				dependsOn(copyP2MetadataTask, generatePropertiesTask)
 			]
 		}
 	}
@@ -136,7 +141,7 @@ class EclipsePublishing {
 	
 	private def getBuildTimestamp(P2Repository repository) {
 		if (!repository.referenceBundle.nullOrEmpty) {
-			val referencePrefix = repository.referenceBundle + '_' + mainVersion
+			val referencePrefix = repository.referenceBundle + '_' + mainVersion + '.v'
 			val bundleDir = new File(buildDir, 'p2/repository/plugins')
 			val referenceBundleFile = bundleDir?.listFiles?.findFirst[
 				name.startsWith(referencePrefix) && name.endsWith('.jar')
