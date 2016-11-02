@@ -14,6 +14,7 @@ import org.eclipse.xtend.lib.annotations.FinalFieldsConstructor
 import org.gradle.api.GradleScriptException
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.Delete
 import pw.prok.download.Download
 
 @FinalFieldsConstructor
@@ -33,6 +34,12 @@ class EclipsePublishing {
 				throw new GradleScriptException('Repository name must be defined.', null)
 			if (repository.url.nullOrEmpty)
 				throw new GradleScriptException('Repository URL must be defined.', null)
+			
+			val cleanResultTask = task(#{'type' -> Delete}, '''clean«repository.name»BuildResult''') => [ task |
+				val it = task as Delete
+				delete(file('''«rootDir»/build-result'''))
+			]
+			tasks.findByName('clean').dependsOn(cleanResultTask)
 			
 			val downloadP2Task = task(#{'type' -> Download}, '''download«repository.name»P2Repository''') => [ task |
 				val it = task as Download
@@ -58,7 +65,7 @@ class EclipsePublishing {
 					description = 'Send the plugins of the P2 repository to the JAR signing service'
 					dependsOn(unzipP2Task)
 					inputDir = file('''«buildDir»/p2/repository/plugins''')
-					outputDir = file('''«buildDir»/build-result/p2.repository/plugins''')
+					outputDir = file('''«rootDir»/build-result/p2.repository/plugins''')
 				]
 				
 				task(#{'type' -> JarSignTask}, '''sign«repository.name»P2Features''') => [ task |
@@ -67,7 +74,7 @@ class EclipsePublishing {
 					description = 'Send the features of the P2 repository to the JAR signing service'
 					dependsOn(unzipP2Task)
 					inputDir = file('''«buildDir»/p2/repository/features''')
-					outputDir = file('''«buildDir»/build-result/p2.repository/features''')
+					outputDir = file('''«rootDir»/build-result/p2.repository/features''')
 				]
 			}
 			
@@ -77,7 +84,7 @@ class EclipsePublishing {
 				description = 'Copy the P2 repository metadata to the build result directory'
 				dependsOn(unzipP2Task)
 				from('''«buildDir»/p2/repository''')
-				into('''«buildDir»/build-result/p2.repository''')
+				into('''«rootDir»/build-result/p2.repository''')
 				if (osspub.signJars)
 					include('*')
 			]
@@ -87,15 +94,15 @@ class EclipsePublishing {
 				group = 'Eclipse'
 				description = 'Copy the publisher scripts required for Eclipse publishing to the build result directory'
 				from('eclipse')
-				into('''«buildDir»/build-result''')
+				into('''«rootDir»/build-result''')
 			]
 			
 			val generatePropertiesTask = task('''generateEclipse«repository.name»PublisherProperties''') => [
 				group = 'Eclipse'
 				description = 'Generate properties files required by scripts for Eclipse publishing'
 				dependsOn(copyEclipsePublisherTask)
-				val promotePropertiesFile = file('''«buildDir»/build-result/promote.properties''')
-				val publisherPropertiesFile = file('''«buildDir»/build-result/publisher.properties''')
+				val promotePropertiesFile = file('''«rootDir»/build-result/promote.properties''')
+				val publisherPropertiesFile = file('''«rootDir»/build-result/publisher.properties''')
 				doLast[
 					Files.write(generatePropoteProperties(repository), promotePropertiesFile, Charset.defaultCharset)
 					Files.write(generatePublisherProperties(repository), publisherPropertiesFile, Charset.defaultCharset)
