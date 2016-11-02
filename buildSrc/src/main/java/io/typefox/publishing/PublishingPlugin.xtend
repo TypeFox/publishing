@@ -29,6 +29,11 @@ import org.sonatype.plexus.components.sec.dispatcher.SecUtil
 
 class PublishingPlugin implements Plugin<Project> {
 	
+	static val EXTENSION_NAME = 'osspub'
+	static val SIGNING_SECRET_KEYRING_FILE = 'signing.secretKeyRingFile'
+	static val SIGNING_KEY_ID = 'signing.keyId'
+	static val SIGNING_PASSWORD = 'signing.password'
+	
 	val classifiersExtensions = #[null -> 'jar', 'sources' -> 'jar', 'javadoc' -> 'jar', null -> 'pom']
 	
 	extension Project project
@@ -38,48 +43,71 @@ class PublishingPlugin implements Plugin<Project> {
 		project.apply(#{'plugin' -> 'signing'})
 		project.apply(#{'plugin' -> 'maven-publish'})
 		this.project = project
-		this.osspub = project.extensions.create('osspub', PublishingPluginExtension)
+		this.osspub = project.extensions.create(EXTENSION_NAME, PublishingPluginExtension)
 		project.afterEvaluate[
-			loadMavenSettings()
 			configureGlobals()
+			loadMavenSettings()
 			configureTasks()
 		]
 	}
 	
 	private def void configureGlobals() {
-		// Configure version of projects to publish
-		if (hasProperty('publish.version'))
-			osspub.version(property('publish.version') as String)
-		else if (hasProperty('PUBLISH_VERSION'))
-			osspub.version(property('PUBLISH_VERSION') as String)
-		else if (osspub.version.nullOrEmpty)
-			throw new GradleScriptException('The version to be published has to be set with -Ppublish.version=<version>', null)
+		val infoPrefix = EXTENSION_NAME.toUpperCase
+		PublishingPluginExtension.declaredFields.filter[ field |
+			// Get all extension fields that have an equally named setter method
+			try {
+				PublishingPluginExtension.getMethod(field.name, Object)
+				true
+			} catch (NoSuchMethodException e) {
+				false
+			}
+		].forEach[ field |
+			// Look for a property with the respective field name
+			val propertyName = EXTENSION_NAME + '.' + field.name
+			if (hasProperty(propertyName)) {
+				logger.info('''«infoPrefix»: Using global property «propertyName»''')
+				PublishingPluginExtension.getMethod(field.name, Object).invoke(osspub, property(propertyName))
+			} else {
+				// Look for an environment variable: field name in uppercase and using '_' as delimiter
+				val envVarName = propertyName.toEnvVariable
+				if (hasProperty(envVarName)) {
+					logger.info('''«infoPrefix»: Using environment variable ORG_GRADLE_PROJECT_«envVarName»''')
+					PublishingPluginExtension.getMethod(field.name, Object).invoke(osspub, property(envVarName))
+				}
+			}
+		]
 		
-		// Configure signing credentials
-		if (!hasProperty('signing.secretKeyRingFile')) {
-			if (hasProperty('SIGNING_SECRETKEYRINGFILE'))
-				ext.set('signing.secretKeyRingFile', property('SIGNING_SECRETKEYRINGFILE'))
-			else
-				ext.set('signing.secretKeyRingFile', new File(System.getProperty('user.home'), '.gnupg/secring.gpg').toString)
+		if (osspub.version.nullOrEmpty)
+			throw new GradleScriptException('''The version to be published has to be set with -P«EXTENSION_NAME».version=<version>''', null)
+		
+		// Configure credentials for the signing plugin
+		if (hasProperty(SIGNING_SECRET_KEYRING_FILE)) {
+			logger.info('''«infoPrefix»: Using global property «SIGNING_SECRET_KEYRING_FILE»''')
+		} else if (hasProperty(SIGNING_SECRET_KEYRING_FILE.toEnvVariable)) {
+			val envVarName = SIGNING_SECRET_KEYRING_FILE.toEnvVariable
+			logger.info('''«infoPrefix»: Using environment variable ORG_GRADLE_PROJECT_«envVarName»''')
+			ext.set(SIGNING_SECRET_KEYRING_FILE, property(envVarName))
+		} else {
+			ext.set(SIGNING_SECRET_KEYRING_FILE, new File(System.getProperty('user.home'), '.gnupg/secring.gpg').toString)
 		}
-		if (!hasProperty('signing.keyId') && hasProperty('SIGNING_KEYID'))
-			ext.set('signing.keyId', property('SIGNING_KEYID'))
-		if (!hasProperty('signing.password') && hasProperty('SIGNING_PASSWORD'))
-			ext.set('signing.password', property('SIGNING_PASSWORD'))
-		if (hasProperty('signing.createSignatures'))
-			osspub.createSignatures(property('signing.createSignatures'))
-		else if (hasProperty('SIGNING_CREATE_SIGNATURES'))
-			osspub.createSignatures(property('SIGNING_CREATE_SIGNATURES'))
-		if (hasProperty('signing.signJars'))
-			osspub.signJars(property('signing.signJars'))
-		else if (hasProperty('SIGNING_SIGN_JARS'))
-			osspub.signJars(property('SIGNING_SIGN_JARS'))
+		if (hasProperty(SIGNING_KEY_ID)) {
+			logger.info('''«infoPrefix»: Using global property «SIGNING_KEY_ID»''')
+		} else if (hasProperty(SIGNING_KEY_ID.toEnvVariable)) {
+			val envVarName = SIGNING_KEY_ID.toEnvVariable
+			logger.info('''«infoPrefix»: Using environment variable ORG_GRADLE_PROJECT_«envVarName»''')
+			ext.set(SIGNING_KEY_ID, property(envVarName))
+		}
+		if (hasProperty(SIGNING_PASSWORD)) {
+			logger.info('''«infoPrefix»: Using global property «SIGNING_PASSWORD»''')
+		} else if (hasProperty(SIGNING_PASSWORD.toEnvVariable)) {
+			val envVarName = SIGNING_PASSWORD.toEnvVariable
+			logger.info('''«infoPrefix»: Using environment variable ORG_GRADLE_PROJECT_«envVarName»''')
+			ext.set(SIGNING_PASSWORD, property(envVarName))
+		}
 		
 		// Configure remote repositories
-		if (!hasProperty('publishing.userName') && hasProperty('PUBLISHING_USERNAME'))
-			ext.set('publishing.userName', property('PUBLISHING_USERNAME'))
-		if (!hasProperty('publishing.password') && hasProperty('PUBLISHING_PASSWORD'))
-			ext.set('publishing.password', property('PUBLISHING_PASSWORD'))
+		val repoUsername = (findProperty('publishing.userName') ?: findProperty('PUBLISHING_USERNAME'))?.toString
+		val repoPassword = (findProperty('publishing.password') ?: findProperty('PUBLISHING_PASSWORD'))?.toString
 		val isSnapshot = osspub.version.endsWith('-SNAPSHOT')
 		publishing.repositories [
 			maven [
@@ -88,10 +116,10 @@ class PublishingPlugin implements Plugin<Project> {
 					url = osspub.snapshotUrl
 				else
 					url = osspub.stagingUrl
-				if (findProperty('publishing.userName') != null && findProperty('publishing.password') != null) {
+				if (repoUsername !== null && repoPassword !== null) {
 					credentials [
-						username = property('publishing.userName') as String
-						password = property('publishing.password') as String
+						username = repoUsername
+						password = repoPassword
 					]
 				}
 			]
@@ -254,7 +282,11 @@ class PublishingPlugin implements Plugin<Project> {
 		try {
 			// Load settings.xml
 			val settingsBuildingRequest = new DefaultSettingsBuildingRequest
+			if (osspub.userMavenSettings.exists)
+				logger.info('''Maven Settings: including user file «osspub.userMavenSettings»''')
 			settingsBuildingRequest.userSettingsFile = osspub.userMavenSettings
+			if (osspub.globalMavenSettings.exists)
+				logger.info('''Maven Settings: including global file «osspub.globalMavenSettings»''')
 			settingsBuildingRequest.globalSettingsFile = osspub.globalMavenSettings
 			settingsBuildingRequest.systemProperties = System.properties
 			val settingsBuilder = new DefaultSettingsBuilderFactory().newInstance()
@@ -262,17 +294,20 @@ class PublishingPlugin implements Plugin<Project> {
 			
 			// Set up for decryption
 			val cipher = new DefaultPlexusCipher
-			val mavenSecurityFile = osspub.mavenSecurityFile
-			val decryptionKey = if (mavenSecurityFile.exists && !mavenSecurityFile.isDirectory) {
-				val settingsSecurity = SecUtil.read(mavenSecurityFile.toString, true)
+			val decryptionKey = if (osspub.mavenSecurityFile.exists && !osspub.mavenSecurityFile.isDirectory) {
+				logger.info('''Maven Settings: including security file «osspub.mavenSecurityFile»''')
+				val settingsSecurity = SecUtil.read(osspub.mavenSecurityFile.toString, true)
 				cipher.decryptDecorated(settingsSecurity.master, DefaultSecDispatcher.SYSTEM_PROPERTY_SEC_LOCATION)
 			}
+			
+			logger.info('''Maven Settings: found «mavenSettings.servers.size» server entries''')
 			
 			// Apply username and password from the Maven settings to all matching repositories
 			repositories.filter(MavenArtifactRepository).forEach [ repository |
 				val server = mavenSettings.servers.filter[username !== null && password !== null].findFirst[id == repository.name]
 				if (server !== null) {
 					repository.credentials [
+						logger.info('''Maven Settings: using server entry for «repository.name» repository''')
 						username = server.username
 						if (cipher.isEncryptedString(server.password)) {
 							if (decryptionKey === null)
@@ -287,6 +322,7 @@ class PublishingPlugin implements Plugin<Project> {
 			// Get the GPG key for creating signature files from the Maven settings
 			val gpgServer = mavenSettings.servers.filter[passphrase !== null].findFirst[id == 'gpg.passphrase']
 			if (gpgServer !== null) {
+				logger.info('Maven Settings: using server entry for pgp signing')
 				if (cipher.isEncryptedString(gpgServer.passphrase)) {
 					if (decryptionKey === null)
 						throw new GradleScriptException('Missing settings-security.xml file.', null)
@@ -309,6 +345,22 @@ class PublishingPlugin implements Plugin<Project> {
 	
 	private def signing() {
 		project.extensions.getByName('signing') as SigningExtension
+	}
+	
+	private static def toEnvVariable(String propertyName) {
+		val result = new StringBuilder
+		for (var i = 0; i < propertyName.length; i++) {
+			val c = propertyName.charAt(i)
+			if (Character.isLowerCase(c)) {
+				result.append(Character.toUpperCase(c))
+			} else if (Character.isUpperCase(c)) {
+				result.append('_')
+				result.append(c)
+			} else {
+				result.append('_')
+			}
+		}
+		return result.toString
 	}
 	
 }
