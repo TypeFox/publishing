@@ -29,8 +29,6 @@ class PublishingPluginExtension {
 	
 	boolean signJars = false
 	
-	File jarSigner
-	
 	List<MavenProject> projects = newArrayList
 	
 	File userMavenSettings = new File(System.getProperty('user.home'), '.m2/settings.xml')
@@ -73,13 +71,6 @@ class PublishingPluginExtension {
 			this.signJars = input
 		else if (input instanceof String)
 			this.signJars = Boolean.valueOf(input)
-	}
-	
-	def void jarSigner(Object input) {
-		if (input instanceof File)
-			this.jarSigner = input
-		else
-			this.jarSigner = new File(input.toString)
 	}
 	
 	def project(Closure<MavenProject> configure) {

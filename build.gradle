@@ -31,5 +31,4 @@ osspub {
 		url "http://services.typefox.io/open-source/jenkins/job/xtext/job/${osspub.branch}/lastSuccessfulBuild/artifact/build/org.eclipse.xtext.sdk.p2-repository-${osspub.version}.zip"
 		referenceBundle 'org.eclipse.xtext.ui'
 	}
-	jarSigner file('jar-sign.sh')
 }

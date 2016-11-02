@@ -20,7 +20,6 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.GenerateMavenPom
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.gradle.api.tasks.Copy
-import org.gradle.api.tasks.Exec
 import org.gradle.plugins.signing.SigningExtension
 import org.sonatype.plexus.components.cipher.DefaultPlexusCipher
 import org.sonatype.plexus.components.sec.dispatcher.DefaultSecDispatcher
@@ -98,19 +97,13 @@ class MavenPublishing {
 		
 			// Step 3: Send the artifacts to the JAR signing service
 			if (osspub.signJars) {
-				if (osspub.jarSigner === null)
-					throw new GradleScriptException('JAR signing was enabled, but no signer executable was configured.', null)
-				task(#{'type' -> Exec}, '''sign«pubProject.name»Jars''') => [ task |
-					val it = task as Exec
-					description = '''Send the artifacts of «pubProject.name» to the JAR signing service'''
+				task(#{'type' -> JarSignTask}, '''sign«pubProject.name»Jars''') => [ task |
+					val it = task as JarSignTask
 					group = 'Signing'
+					description = '''Send the artifacts of «pubProject.name» to the JAR signing service'''
 					dependsOn(archivesCopyTask)
-					executable = osspub.jarSigner
-					args('''«buildDir»/artifacts''', '''«buildDir»/signedArtifacts''')
-					for (pubArtifact : pubProject.artifacts) {
-						inputs.file(pubArtifact.getFileName(null, 'jar', 'artifacts'))
-						outputs.file(pubArtifact.getFileName(null, 'jar', 'signedArtifacts'))
-					}
+					inputDir = file('''«buildDir»/artifacts''')
+					outputDir = file('''«buildDir»/signedArtifacts''')
 				]
 			}
 		
