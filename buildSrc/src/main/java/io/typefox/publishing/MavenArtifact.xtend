@@ -13,9 +13,9 @@ import org.eclipse.xtend.lib.annotations.FinalFieldsConstructor
 
 @Accessors(PUBLIC_GETTER)
 @FinalFieldsConstructor
-class PublishingArtifact {
+class MavenArtifact {
 	
-	val PublishingProject project
+	val MavenProject project
 	
 	String name
 	

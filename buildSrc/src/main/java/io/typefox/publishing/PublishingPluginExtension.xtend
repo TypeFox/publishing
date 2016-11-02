@@ -31,7 +31,7 @@ class PublishingPluginExtension {
 	
 	File jarSigner
 	
-	List<PublishingProject> projects = newArrayList
+	List<MavenProject> projects = newArrayList
 	
 	File userMavenSettings = new File(System.getProperty('user.home'), '.m2/settings.xml')
 	
@@ -39,7 +39,7 @@ class PublishingPluginExtension {
 	
 	File mavenSecurityFile = new File(System.getProperty('user.home'), '/.m2/settings-security.xml')
 	
-	String p2Repository
+	P2Repository p2Repository
 	
 	def void version(Object input) {
 		this.version = input.toString
@@ -82,8 +82,8 @@ class PublishingPluginExtension {
 			this.jarSigner = new File(input.toString)
 	}
 	
-	def project(Closure<PublishingProject> configure) {
-		val result = new PublishingProject
+	def project(Closure<MavenProject> configure) {
+		val result = new MavenProject
 		configure.delegate = result
 		configure.resolveStrategy = Closure.DELEGATE_FIRST
 		configure.call()
@@ -112,8 +112,13 @@ class PublishingPluginExtension {
 			this.mavenSecurityFile = new File(input.toString)
 	}
 	
-	def void p2Repository(Object input) {
-		this.p2Repository = input.toString
+	def p2Repository(Closure<P2Repository> configure) {
+		val result = new P2Repository
+		configure.delegate = result
+		configure.resolveStrategy = Closure.DELEGATE_FIRST
+		configure.call()
+		p2Repository = result
+		return result
 	}
 	
 }

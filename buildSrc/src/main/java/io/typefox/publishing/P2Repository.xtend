@@ -7,41 +7,33 @@
  *******************************************************************************/
 package io.typefox.publishing
 
-import groovy.lang.Closure
-import java.util.List
 import org.eclipse.xtend.lib.annotations.Accessors
 
 @Accessors(PUBLIC_GETTER)
-class PublishingProject {
+class P2Repository {
 	
 	String name
 	
 	String group
 	
-	List<PublishingArtifact> artifacts = newArrayList
+	String url
 	
-	def void name(String name) {
-		this.name = name
+	String referenceBundle
+	
+	def void name(Object input) {
+		this.name = input.toString
 	}
 	
-	def void group(String group) {
-		this.group = group
+	def void group(Object input) {
+		this.group = input.toString
 	}
 	
-	def artifact(Closure<PublishingArtifact> configure) {
-		val result = new PublishingArtifact(this)
-		configure.delegate = result
-		configure.resolveStrategy = Closure.DELEGATE_FIRST
-		configure.call()
-		artifacts += result
-		return result
+	def void url(Object input) {
+		this.url = input.toString
 	}
 	
-	def artifact(String name) {
-		val result = new PublishingArtifact(this)
-		result.name(name)
-		artifacts += result
-		return result
+	def void referenceBundle(Object input) {
+		this.referenceBundle = input.toString
 	}
 	
 }

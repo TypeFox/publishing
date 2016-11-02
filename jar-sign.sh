@@ -4,10 +4,11 @@
 #   https://wiki.eclipse.org/JAR_Signing
 # This works only when invoked from the Eclipse build infrastructure.
 
-BUILD_DIR="build"
-mkdir -p $BUILD_DIR/signedArtifacts
+mkdir -p $2
 
-for ARTIFACT in "$@"
+for ARTIFACT in $1/*.jar
 do
-	curl -o $BUILD_DIR/signedArtifacts/$ARTIFACT -F file=@$BUILD_DIR/artifacts/$ARTIFACT http://build.eclipse.org:31338/sign
+	FILE=`basename $ARTIFACT`
+	cp $1/$FILE $2/$FILE
+	#curl -o $2/$FILE -F file=@$1/$FILE http://build.eclipse.org:31338/sign
 done

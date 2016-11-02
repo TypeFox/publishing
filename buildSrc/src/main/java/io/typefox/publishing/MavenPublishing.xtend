@@ -64,7 +64,7 @@ class MavenPublishing {
 	private def void configureTasks() {
 		for (pubProject : osspub.projects) {
 			if (pubProject.name.nullOrEmpty)
-				throw new GradleScriptException('Project name must not be undefined.', null)
+				throw new GradleScriptException('Project name must be defined.', null)
 			val dependenciesConfig = configurations.create('''dependencies«pubProject.name»''')
 			val archivesConfig = configurations.create('''archives«pubProject.name»''')
 			val signaturesConfig = configurations.create('''signatures«pubProject.name»''')
@@ -106,7 +106,7 @@ class MavenPublishing {
 					group = 'Signing'
 					dependsOn(archivesCopyTask)
 					executable = osspub.jarSigner
-					args(pubProject.artifacts.map[pubArtifact | '''«pubArtifact.name»-«osspub.version».jar''' ])
+					args('''«buildDir»/artifacts''', '''«buildDir»/signedArtifacts''')
 					for (pubArtifact : pubProject.artifacts) {
 						inputs.file(pubArtifact.getFileName(null, 'jar', 'artifacts'))
 						outputs.file(pubArtifact.getFileName(null, 'jar', 'signedArtifacts'))
@@ -179,7 +179,7 @@ class MavenPublishing {
 			
 			task('''publish«pubProject.name»''') => [
 				group = 'Publishing'
-				description = '''Publishes all «pubProject.name» artifacts.'''
+				description = '''Publishes all «pubProject.name» artifacts'''
 				for (artifact : pubProject.artifacts) {
 					dependsOn('''publish«artifact.publicationName.toFirstUpper»PublicationTo«osspub.mavenUploadRepository.toFirstUpper»Repository''')
 				}
@@ -195,7 +195,7 @@ class MavenPublishing {
 		]
 	}
 	
-	private def String getFileName(PublishingArtifact pubArtifact, String classifierName, String extensionName,
+	private def String getFileName(MavenArtifact pubArtifact, String classifierName, String extensionName,
 			String artifactsDir) {
 		'''«buildDir»/«artifactsDir ?: (
 			if (osspub.signJars && classifierName === null && extensionName == 'jar')
@@ -205,11 +205,11 @@ class MavenPublishing {
 		)»/«pubArtifact.name»-«osspub.version»«IF classifierName !== null»-«classifierName»«ENDIF».«extensionName»'''
 	}
 	
-	private def String getPublicationName(PublishingArtifact pubArtifact) {
+	private def String getPublicationName(MavenArtifact pubArtifact) {
 		pubArtifact.name.replaceAll('\\.|-', '')
 	}
 	
-	private def boolean excludes(PublishingArtifact pubArtifact, Pair<String, String> cePair) {
+	private def boolean excludes(MavenArtifact pubArtifact, Pair<String, String> cePair) {
 		pubArtifact.excludedClassifiers.contains(cePair.key) || pubArtifact.excludedExtensions.contains(cePair.value)
 	}
 	

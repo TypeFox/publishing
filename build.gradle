@@ -25,6 +25,11 @@ repositories {
 
 osspub {
 	mavenUploadRepository 'ossrh'
-	p2Repository "http://services.typefox.io/open-source/jenkins/job/xtext/job/${osspub.branch}/lastSuccessfulBuild/artifact/build/org.eclipse.xtext.sdk.p2-repository-${osspub.version}.zip"
+	p2Repository {
+		name 'Xtext'
+		group 'modeling.tmf.xtext'
+		url "http://services.typefox.io/open-source/jenkins/job/xtext/job/${osspub.branch}/lastSuccessfulBuild/artifact/build/org.eclipse.xtext.sdk.p2-repository-${osspub.version}.zip"
+		referenceBundle 'org.eclipse.xtext.ui'
+	}
 	jarSigner file('jar-sign.sh')
 }
