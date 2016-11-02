@@ -19,7 +19,7 @@ class PublishingPluginExtension {
 	
 	String branch = 'master'
 	
-	String repositoryName = 'Maven'
+	String mavenUploadRepository = 'Maven'
 	
 	String stagingUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
 	
@@ -39,6 +39,8 @@ class PublishingPluginExtension {
 	
 	File mavenSecurityFile = new File(System.getProperty('user.home'), '/.m2/settings-security.xml')
 	
+	String p2Repository
+	
 	def void version(Object input) {
 		this.version = input.toString
 	}
@@ -47,8 +49,8 @@ class PublishingPluginExtension {
 		this.branch = input.toString
 	}
 	
-	def void repositoryName(Object input) {
-		this.repositoryName = input.toString
+	def void mavenUploadRepository(Object input) {
+		this.mavenUploadRepository = input.toString
 	}
 	
 	def void stagingUrl(Object input) {
@@ -108,6 +110,10 @@ class PublishingPluginExtension {
 			this.mavenSecurityFile = input
 		else
 			this.mavenSecurityFile = new File(input.toString)
+	}
+	
+	def void p2Repository(Object input) {
+		this.p2Repository = input.toString
 	}
 	
 }

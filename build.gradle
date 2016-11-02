@@ -3,21 +3,14 @@
  * Copyright 2016 TypeFox GmbH
  */
 
-//--------------------------------------------------------------------
-// Source repositories for fetching artifacts built by Jenkins
-
-if (!hasProperty('publish.branch')) {
-	if (hasProperty('PUBLISH_BRANCH'))
-		ext.'publish.branch' = property('PUBLISH_BRANCH')
-	else
-		ext.'publish.branch' = 'master'
-}
+apply plugin: io.typefox.publishing.PublishingPlugin.class
+apply from: 'artifacts.gradle'
 
 def jenkinsRepo = { jobName ->
-	"http://services.typefox.io/open-source/jenkins/job/$jobName/lastStableBuild/artifact/build/maven-repository/"
+	"http://services.typefox.io/open-source/jenkins/job/${jobName}/lastStableBuild/artifact/build/maven-repository/"
 }
 def jenkinsPipelineRepo = { jobName ->
-	"http://services.typefox.io/open-source/jenkins/job/$jobName/job/${property('publish.branch')}/lastStableBuild/artifact/build/maven-repository/"
+	"http://services.typefox.io/open-source/jenkins/job/${jobName}/job/${osspub.branch}/lastStableBuild/artifact/build/maven-repository/"
 }
 repositories {
 	maven { url jenkinsRepo('lsapi') }
@@ -30,14 +23,8 @@ repositories {
 	jcenter()
 }
 
-//--------------------------------------------------------------------
-// Configuration of publishing plugin
-
-apply plugin: io.typefox.publishing.PublishingPlugin.class
-
-apply from: "artifacts.gradle"
-
 osspub {
-	repositoryName 'ossrh'
+	mavenUploadRepository 'ossrh'
+	p2Repository "http://services.typefox.io/open-source/jenkins/job/xtext/job/${osspub.branch}/lastSuccessfulBuild/artifact/build/org.eclipse.xtext.sdk.p2-repository-${osspub.version}.zip"
 	jarSigner file('jar-sign.sh')
 }
