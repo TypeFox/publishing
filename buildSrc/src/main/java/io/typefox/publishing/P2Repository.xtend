@@ -21,7 +21,7 @@ class P2Repository {
 	
 	val List<String> namespaces = newArrayList
 	
-	String referenceBundle
+	String referenceFeature
 	
 	String timestampPrefix
 	
@@ -41,8 +41,8 @@ class P2Repository {
 		this.namespaces += input.toString
 	}
 	
-	def void referenceBundle(Object input) {
-		this.referenceBundle = input.toString
+	def void referenceFeature(Object input) {
+		this.referenceFeature = input.toString
 	}
 	
 	def void timestampPrefix(Object input) {

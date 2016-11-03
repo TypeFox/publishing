@@ -132,7 +132,7 @@ class EclipsePublishing {
 				]
 			]
 			
-			if (!repository.referenceBundle.nullOrEmpty) {
+			if (!repository.referenceFeature.nullOrEmpty) {
 				val generatePropertiesTask = task('''generateEclipse«repoName»PublisherProperties''') => [
 					group = 'Eclipse'
 					description = 'Generate properties files required by scripts for Eclipse publishing'
@@ -182,14 +182,14 @@ class EclipsePublishing {
 	}
 	
 	private def getBuildTimestamp(P2Repository repository) {
-		if (!repository.referenceBundle.nullOrEmpty) {
-			val referencePrefix = '''«repository.referenceBundle»_«mainVersion».«repository.timestampPrefix»'''
-			val bundleDir = new File(buildDir, '''p2-«repository.name.toLowerCase»/repository-unsigned/plugins''')
-			val referenceBundleFile = bundleDir?.listFiles?.findFirst[
+		if (!repository.referenceFeature.nullOrEmpty) {
+			val referencePrefix = '''«repository.referenceFeature»_«mainVersion».«repository.timestampPrefix»'''
+			val bundleDir = new File(buildDir, '''p2-«repository.name.toLowerCase»/repository-unsigned/features''')
+			val referenceFeatureFile = bundleDir?.listFiles?.findFirst[
 				name.startsWith(referencePrefix) && name.endsWith('.jar')
 			]
-			if (referenceBundleFile !== null) {
-				val fileName = referenceBundleFile.name
+			if (referenceFeatureFile !== null) {
+				val fileName = referenceFeatureFile.name
 				return fileName.substring(referencePrefix.length, fileName.length - '.jar'.length).replace('-', '')
 			}
 		}
