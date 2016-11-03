@@ -12,6 +12,7 @@ import org.apache.maven.settings.building.DefaultSettingsBuildingRequest
 import org.apache.maven.settings.building.SettingsBuildingException
 import org.eclipse.xtend.lib.annotations.FinalFieldsConstructor
 import org.gradle.api.GradleScriptException
+import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ConfigurablePublishArtifact
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
@@ -63,7 +64,7 @@ class MavenPublishing {
 	private def void configureTasks() {
 		for (pubProject : osspub.projects) {
 			if (pubProject.name.nullOrEmpty)
-				throw new GradleScriptException('Project name must be defined.', null)
+				throw new InvalidUserDataException('Project name must be defined.')
 			val dependenciesConfig = configurations.create('''dependencies«pubProject.name»''')
 			val archivesConfig = configurations.create('''archives«pubProject.name»''')
 			val signaturesConfig = configurations.create('''signatures«pubProject.name»''')
@@ -71,7 +72,7 @@ class MavenPublishing {
 			// Step 1: Specify dependencies to artifacts
 			for (pubArtifact : pubProject.artifacts) {
 				if (pubArtifact.name.nullOrEmpty)
-					throw new GradleScriptException('''Artifact name must not be undefined (project: «pubProject.name»).''', null)
+					throw new InvalidUserDataException('''Artifact name must not be undefined (project: «pubProject.name»).''')
 				classifiersExtensions.filter[!pubArtifact.excludes(it)].forEach [ cePair |
 					dependencies.add(dependenciesConfig.name, #{
 						'group' -> pubArtifact.group,
@@ -102,8 +103,11 @@ class MavenPublishing {
 					group = 'Signing'
 					description = '''Send the artifacts of «pubProject.name» to the JAR signing service'''
 					dependsOn(archivesCopyTask)
-					inputDir = file('''«buildDir»/artifacts''')
-					outputDir = file('''«buildDir»/signedArtifacts''')
+					from = file('''«buildDir»/artifacts''')
+					into = file('''«buildDir»/signedArtifacts''')
+					for (pubArtifact : pubProject.artifacts) {
+						include('''**/«pubArtifact.name»-«osspub.version»*.jar''')
+					}
 				]
 			}
 		

@@ -8,41 +8,48 @@
 package io.typefox.publishing
 
 import java.io.File
-import org.eclipse.xtend.lib.annotations.Accessors
-import org.gradle.api.DefaultTask
-import org.gradle.api.tasks.InputDirectory
-import org.gradle.api.tasks.OutputDirectory
-import org.gradle.api.tasks.TaskAction
-import org.gradle.api.tasks.incremental.IncrementalTaskInputs
+import org.gradle.api.InvalidUserDataException
+import org.gradle.api.internal.file.copy.DestinationRootCopySpec
+import org.gradle.api.internal.tasks.SimpleWorkResult
+import org.gradle.api.tasks.AbstractCopyTask
 
 /**
  * JAR signing script that follows the instructions at
  *     https://wiki.eclipse.org/JAR_Signing
  * This works only when invoked from the Eclipse build infrastructure.
  */
-@Accessors
-class JarSignTask extends DefaultTask {
+class JarSignTask extends AbstractCopyTask {
 	
-	@InputDirectory
-	File inputDir
-	
-	@OutputDirectory
-	File outputDir
-	
-	@TaskAction
-	def void execute(IncrementalTaskInputs inputs) {
-		inputs.outOfDate[
-			if (file.name.endsWith('.jar'))
-				file.signJar
+	private def boolean signFile(File source, File target) {
+		target.parentFile?.mkdirs()
+		val result = project.exec[
+			executable = 'curl'
+			args = #['-o', target.path, '-F', '''file=@«source.path»''', 'http://build.eclipse.org:31338/sign']
 		]
-		inputs.removed[new File(outputDir, file.name).delete()]
+		return result.exitValue == 0
 	}
 	
-	private def void signJar(File unsigned) {
-		project.exec[
-			executable = 'curl'
-			args = #['-o', new File(outputDir, unsigned.name).path, '-F', '''file=@«unsigned»''', 'http://build.eclipse.org:31338/sign']
-		]
+	override protected createRootSpec() {
+        instantiator.newInstance(DestinationRootCopySpec, fileResolver, super.createRootSpec())
+    }
+	
+    override DestinationRootCopySpec getRootSpec() {
+        super.rootSpec as DestinationRootCopySpec
+    }
+	
+	override protected createCopyAction() {
+		val destinationDir = rootSpec.destinationDir
+        if (destinationDir === null)
+            throw new InvalidUserDataException('No copy destination directory has been specified, use \'into\' to specify a target directory.')
+        val fileResolver = fileLookup.getFileResolver(destinationDir)
+        return [ stream |
+        	val didWork = newBooleanArrayOfSize(1)
+		    stream.process[
+        		val target = fileResolver.resolve(relativePath.pathString)
+                didWork.set(0, signFile(file, target))
+        	]
+		    return new SimpleWorkResult(didWork.get(0))
+        ]
 	}
 	
 }

@@ -7,6 +7,7 @@
  *******************************************************************************/
 package io.typefox.publishing
 
+import java.util.List
 import org.eclipse.xtend.lib.annotations.Accessors
 
 @Accessors(PUBLIC_GETTER)
@@ -17,6 +18,8 @@ class P2Repository {
 	String group
 	
 	String url
+	
+	val List<String> namespaces = newArrayList
 	
 	String referenceBundle
 	
@@ -32,6 +35,10 @@ class P2Repository {
 	
 	def void url(Object input) {
 		this.url = input.toString
+	}
+	
+	def void namespace(Object input) {
+		this.namespaces += input.toString
 	}
 	
 	def void referenceBundle(Object input) {
