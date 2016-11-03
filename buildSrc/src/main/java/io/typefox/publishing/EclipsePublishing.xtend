@@ -20,6 +20,8 @@ import pw.prok.download.Download
 @FinalFieldsConstructor
 class EclipsePublishing {
 	
+	static val ECLIPSE_HOME = '/opt/public/common/buckminster-4.3'
+	
 	val extension Project project
 	val PublishingPluginExtension osspub
 	
@@ -123,7 +125,7 @@ class EclipsePublishing {
 	
 	private def generatePropoteProperties(P2Repository repository) '''
 		java.home=«System.getenv('JAVA_HOME')»
-		eclipse.home=«System.getenv('ECLIPSE_HOME')»
+		eclipse.home=«ECLIPSE_HOME»
 		build.id=«buildPrefix»«repository.buildTimestamp»
 		hudson.build.id=«System.getenv('BUILD_ID')»
 	'''
