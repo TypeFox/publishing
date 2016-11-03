@@ -14,10 +14,10 @@ import org.gradle.api.Project
 
 class PublishingPlugin implements Plugin<Project> {
 	
-	static val EXTENSION_NAME = 'osspub'
-	static val SIGNING_SECRET_KEYRING_FILE = 'signing.secretKeyRingFile'
-	static val SIGNING_KEY_ID = 'signing.keyId'
-	static val SIGNING_PASSWORD = 'signing.password'
+	public static val EXTENSION_NAME = 'osspub'
+	public static val SIGNING_SECRET_KEYRING_FILE = 'signing.secretKeyRingFile'
+	public static val SIGNING_KEY_ID = 'signing.keyId'
+	public static val SIGNING_PASSWORD = 'signing.password'
 	
 	extension Project project
 	PublishingPluginExtension osspub
@@ -59,13 +59,13 @@ class PublishingPlugin implements Plugin<Project> {
 			// Look for a property with the respective field name
 			val propertyName = EXTENSION_NAME + '.' + field.name
 			if (hasProperty(propertyName)) {
-				logger.info('''«infoPrefix»: Using global property «propertyName»''')
+				logger.info('''«infoPrefix»: using global property «propertyName»''')
 				PublishingPluginExtension.getMethod(field.name, Object).invoke(osspub, property(propertyName))
 			} else {
 				// Look for an environment variable: field name in uppercase and using '_' as delimiter
 				val envVarName = propertyName.toEnvVariable
 				if (hasProperty(envVarName)) {
-					logger.info('''«infoPrefix»: Using environment variable ORG_GRADLE_PROJECT_«envVarName»''')
+					logger.info('''«infoPrefix»: using environment variable ORG_GRADLE_PROJECT_«envVarName»''')
 					PublishingPluginExtension.getMethod(field.name, Object).invoke(osspub, property(envVarName))
 				}
 			}
@@ -77,26 +77,26 @@ class PublishingPlugin implements Plugin<Project> {
 		// Configure credentials for the signing plugin
 		val ext = project.extensions.extraProperties
 		if (hasProperty(SIGNING_SECRET_KEYRING_FILE)) {
-			logger.info('''«infoPrefix»: Using global property «SIGNING_SECRET_KEYRING_FILE»''')
+			logger.info('''«infoPrefix»: using global property «SIGNING_SECRET_KEYRING_FILE»''')
 		} else if (hasProperty(SIGNING_SECRET_KEYRING_FILE.toEnvVariable)) {
 			val envVarName = SIGNING_SECRET_KEYRING_FILE.toEnvVariable
-			logger.info('''«infoPrefix»: Using environment variable ORG_GRADLE_PROJECT_«envVarName»''')
+			logger.info('''«infoPrefix»: using environment variable ORG_GRADLE_PROJECT_«envVarName»''')
 			ext.set(SIGNING_SECRET_KEYRING_FILE, property(envVarName))
 		} else {
 			ext.set(SIGNING_SECRET_KEYRING_FILE, new File(System.getProperty('user.home'), '.gnupg/secring.gpg').toString)
 		}
 		if (hasProperty(SIGNING_KEY_ID)) {
-			logger.info('''«infoPrefix»: Using global property «SIGNING_KEY_ID»''')
+			logger.info('''«infoPrefix»: using global property «SIGNING_KEY_ID»''')
 		} else if (hasProperty(SIGNING_KEY_ID.toEnvVariable)) {
 			val envVarName = SIGNING_KEY_ID.toEnvVariable
-			logger.info('''«infoPrefix»: Using environment variable ORG_GRADLE_PROJECT_«envVarName»''')
+			logger.info('''«infoPrefix»: using environment variable ORG_GRADLE_PROJECT_«envVarName»''')
 			ext.set(SIGNING_KEY_ID, property(envVarName))
 		}
 		if (hasProperty(SIGNING_PASSWORD)) {
-			logger.info('''«infoPrefix»: Using global property «SIGNING_PASSWORD»''')
+			logger.info('''«infoPrefix»: using global property «SIGNING_PASSWORD»''')
 		} else if (hasProperty(SIGNING_PASSWORD.toEnvVariable)) {
 			val envVarName = SIGNING_PASSWORD.toEnvVariable
-			logger.info('''«infoPrefix»: Using environment variable ORG_GRADLE_PROJECT_«envVarName»''')
+			logger.info('''«infoPrefix»: using environment variable ORG_GRADLE_PROJECT_«envVarName»''')
 			ext.set(SIGNING_PASSWORD, property(envVarName))
 		}
 	}

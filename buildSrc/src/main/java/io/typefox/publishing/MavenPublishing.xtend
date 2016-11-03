@@ -235,18 +235,20 @@ class MavenPublishing {
 			logger.info('''Maven Settings: found «mavenSettings.servers.size» server entries''')
 			
 			// Apply username and password from the Maven settings to all matching repositories
-			repositories.filter(MavenArtifactRepository).forEach [ repository |
+			publishing.repositories.filter(MavenArtifactRepository).forEach [ repository |
 				val server = mavenSettings.servers.filter[username !== null && password !== null].findFirst[id == repository.name]
 				if (server !== null) {
 					repository.credentials [
-						logger.info('''Maven Settings: using server entry for «repository.name» repository''')
 						username = server.username
 						if (cipher.isEncryptedString(server.password)) {
 							if (decryptionKey === null)
 								throw new GradleScriptException('Missing settings-security.xml file.', null)
+							logger.info('''Maven Settings: using encrypted server entry for «repository.name» repository''')
 							password = cipher.decryptDecorated(server.password, decryptionKey)
-						} else
+						} else {
+							logger.info('''Maven Settings: using server entry for «repository.name» repository''')
 							password = server.password
+						}
 					]
 				}
 			]
@@ -254,13 +256,15 @@ class MavenPublishing {
 			// Get the GPG key for creating signature files from the Maven settings
 			val gpgServer = mavenSettings.servers.filter[passphrase !== null].findFirst[id == 'gpg.passphrase']
 			if (gpgServer !== null) {
-				logger.info('Maven Settings: using server entry for pgp signing')
 				if (cipher.isEncryptedString(gpgServer.passphrase)) {
 					if (decryptionKey === null)
 						throw new GradleScriptException('Missing settings-security.xml file.', null)
-					ext.set('signing.password', cipher.decryptDecorated(gpgServer.passphrase, decryptionKey))
-				} else
-					ext.set('signing.password', gpgServer.passphrase)
+					logger.info('Maven Settings: using encrypted server entry for pgp signing')
+					ext.set(PublishingPlugin.SIGNING_PASSWORD, cipher.decryptDecorated(gpgServer.passphrase, decryptionKey))
+				} else {
+					logger.info('Maven Settings: using server entry for pgp signing')
+					ext.set(PublishingPlugin.SIGNING_PASSWORD, gpgServer.passphrase)
+				}
 			}
 		} catch (SettingsBuildingException e) {
 			throw new GradleScriptException('Error while loading Maven settings.', e)
