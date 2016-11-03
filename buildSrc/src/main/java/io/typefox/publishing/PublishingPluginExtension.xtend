@@ -29,7 +29,7 @@ class PublishingPluginExtension {
 	
 	boolean signJars = false
 	
-	List<MavenProject> projects = newArrayList
+	val List<MavenProject> projects = newArrayList
 	
 	File userMavenSettings = new File(System.getProperty('user.home'), '.m2/settings.xml')
 	
@@ -37,7 +37,7 @@ class PublishingPluginExtension {
 	
 	File mavenSecurityFile = new File(System.getProperty('user.home'), '/.m2/settings-security.xml')
 	
-	P2Repository p2Repository
+	val List<P2Repository> p2Repositories = newArrayList
 	
 	def void version(Object input) {
 		this.version = input.toString
@@ -108,7 +108,7 @@ class PublishingPluginExtension {
 		configure.delegate = result
 		configure.resolveStrategy = Closure.DELEGATE_FIRST
 		configure.call()
-		p2Repository = result
+		p2Repositories += result
 		return result
 	}
 	

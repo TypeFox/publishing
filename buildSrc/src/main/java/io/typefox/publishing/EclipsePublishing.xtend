@@ -15,6 +15,7 @@ import org.gradle.api.GradleScriptException
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
+import org.gradle.api.tasks.bundling.Zip
 import pw.prok.download.Download
 
 @FinalFieldsConstructor
@@ -30,96 +31,116 @@ class EclipsePublishing {
 	}
 	
 	private def void configureTasks() {
-		if (osspub.p2Repository !== null) {
-			val repository = osspub.p2Repository
+		val cleanResultTask = task(#{'type' -> Delete}, '''cleanBuildResult''') => [ task |
+			val it = task as Delete
+			delete(file('''«rootDir»/build-result'''))
+		]
+		tasks.findByName('clean').dependsOn(cleanResultTask)
+		
+		val copyEclipsePublisherTask = task(#{'type' -> Copy}, '''copyEclipsePublisherScripts''') => [ task |
+			val it = task as Copy
+			group = 'Eclipse'
+			description = 'Copy the publisher scripts required for Eclipse publishing to the build result directory'
+			from('eclipse')
+			into('''«rootDir»/build-result''')
+		]
+		
+		for (repository : osspub.p2Repositories) {
 			if (repository.name.nullOrEmpty)
 				throw new GradleScriptException('Repository name must be defined.', null)
 			if (repository.url.nullOrEmpty)
 				throw new GradleScriptException('Repository URL must be defined.', null)
+			val repoName = repository.name
 			
-			val cleanResultTask = task(#{'type' -> Delete}, '''clean«repository.name»BuildResult''') => [ task |
-				val it = task as Delete
-				delete(file('''«rootDir»/build-result'''))
-			]
-			tasks.findByName('clean').dependsOn(cleanResultTask)
-			
-			val downloadP2Task = task(#{'type' -> Download}, '''download«repository.name»P2Repository''') => [ task |
+			val downloadP2Task = task(#{'type' -> Download}, '''download«repoName»P2Repository''') => [ task |
 				val it = task as Download
 				group = 'P2'
-				description = 'Download the zipped P2 repository'
+				description = '''Download the zipped P2 repository for «repoName»'''
 				src(repository.url)
-	    		dest('''«buildDir»/p2/repository.zip''')
+	    		dest('''«buildDir»/p2-«repoName.toLowerCase»/repository.zip''')
 			]
 			
-			val unzipP2Task = task(#{'type' -> Copy}, '''unzip«repository.name»P2Repository''') => [ task |
+			val unzipP2Task = task(#{'type' -> Copy}, '''unzip«repoName»P2Repository''') => [ task |
 				val it = task as Copy
 				group = 'P2'
-				description = 'Unzip the P2 repository'
+				description = '''Unzip the P2 repository for «repoName»'''
 				dependsOn(downloadP2Task)
-				from(zipTree('''«buildDir»/p2/repository.zip'''))
-				into('''«buildDir»/p2/repository''')
+				from(zipTree('''«buildDir»/p2-«repoName.toLowerCase»/repository.zip'''))
+				into('''«buildDir»/p2-«repoName.toLowerCase»/repository''')
 			]
 			
 			if (osspub.signJars) {
-				task(#{'type' -> JarSignTask}, '''sign«repository.name»P2Plugins''') => [ task |
+				task(#{'type' -> JarSignTask}, '''sign«repoName»P2Plugins''') => [ task |
 					val it = task as JarSignTask
 					group = 'Signing'
-					description = 'Send the plugins of the P2 repository to the JAR signing service'
+					description = '''Send the plugins of the «repoName» P2 repository to the JAR signing service'''
 					dependsOn(unzipP2Task)
-					inputDir = file('''«buildDir»/p2/repository/plugins''')
-					outputDir = file('''«rootDir»/build-result/p2.repository/plugins''')
+					inputDir = file('''«buildDir»/p2-«repoName.toLowerCase»/repository/plugins''')
+					outputDir = file('''«rootDir»/build-result/p2-«repoName.toLowerCase»/plugins''')
 				]
 				
-				task(#{'type' -> JarSignTask}, '''sign«repository.name»P2Features''') => [ task |
+				task(#{'type' -> JarSignTask}, '''sign«repoName»P2Features''') => [ task |
 					val it = task as JarSignTask
 					group = 'Signing'
-					description = 'Send the features of the P2 repository to the JAR signing service'
+					description = '''Send the features of the «repoName» P2 repository to the JAR signing service'''
 					dependsOn(unzipP2Task)
-					inputDir = file('''«buildDir»/p2/repository/features''')
-					outputDir = file('''«rootDir»/build-result/p2.repository/features''')
+					inputDir = file('''«buildDir»/p2-«repoName.toLowerCase»/repository/features''')
+					outputDir = file('''«rootDir»/build-result/p2-«repoName.toLowerCase»/features''')
 				]
 			}
 			
-			val copyP2MetadataTask = task(#{'type' -> Copy}, '''copy«repository.name»P2Metadata''') => [ task |
+			val copyP2MetadataTask = task(#{'type' -> Copy}, '''copy«repoName»P2Metadata''') => [ task |
 				val it = task as Copy
 				group = 'P2'
-				description = 'Copy the P2 repository metadata to the build result directory'
+				description = '''Copy the «repoName» P2 repository metadata to the build result directory'''
 				dependsOn(unzipP2Task)
-				from('''«buildDir»/p2/repository''')
-				into('''«rootDir»/build-result/p2.repository''')
+				from('''«buildDir»/p2-«repoName.toLowerCase»/repository''')
+				into('''«rootDir»/build-result/p2-«repoName.toLowerCase»''')
 				if (osspub.signJars)
 					include('*')
 			]
 			
-			val copyEclipsePublisherTask = task(#{'type' -> Copy}, '''copyEclipse«repository.name»PublisherScripts''') => [ task |
-				val it = task as Copy
-				group = 'Eclipse'
-				description = 'Copy the publisher scripts required for Eclipse publishing to the build result directory'
-				from('eclipse')
-				into('''«rootDir»/build-result''')
-			]
-			
-			val generatePropertiesTask = task('''generateEclipse«repository.name»PublisherProperties''') => [
-				group = 'Eclipse'
-				description = 'Generate properties files required by scripts for Eclipse publishing'
-				dependsOn(copyEclipsePublisherTask)
-				val promotePropertiesFile = file('''«rootDir»/build-result/promote.properties''')
-				val publisherPropertiesFile = file('''«rootDir»/build-result/publisher.properties''')
-				doLast[
-					Files.write(generatePropoteProperties(repository), promotePropertiesFile, Charset.defaultCharset)
-					Files.write(generatePublisherProperties(repository), publisherPropertiesFile, Charset.defaultCharset)
-				]
-				outputs.file(promotePropertiesFile)
-				outputs.file(publisherPropertiesFile)
-			]
-			
-			task('''publishEclipse«repository.name»''') => [
-				group = 'Eclipse'
-				description = 'Set up the build result directory used for Eclipse publishing'
+			val zipP2RepoTask = task(#{'type' -> Zip}, '''zip«repoName»P2Repository''') => [ task |
+				val it = task as Zip
+				group = 'P2'
+				description = '''Create a zip file from the «repoName» P2 repository'''
+				dependsOn(copyP2MetadataTask)
 				if (osspub.signJars)
-					dependsOn('''sign«repository.name»P2Plugins''', '''sign«repository.name»P2Features''')
-				dependsOn(copyP2MetadataTask, generatePropertiesTask)
+					dependsOn('''sign«repoName»P2Plugins''', '''sign«repoName»P2Features''')
+				from('''«rootDir»/build-result/p2-«repoName.toLowerCase»''')
+				destinationDir = file('''«rootDir»/build-result/downloads''')
+				if (repository.group.nullOrEmpty)
+					archiveName = '''«repoName.toLowerCase»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
+				else {
+					val firstSegmentIndex = repository.group.indexOf('.')
+					if (firstSegmentIndex < 0)
+						archiveName = '''«repository.group»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
+					else
+						archiveName = '''«repository.group.substring(firstSegmentIndex + 1).replace('.', '-')»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
+				}
 			]
+			
+			if (!repository.referenceBundle.nullOrEmpty) {
+				val generatePropertiesTask = task('''generateEclipse«repoName»PublisherProperties''') => [
+					group = 'Eclipse'
+					description = 'Generate properties files required by scripts for Eclipse publishing'
+					dependsOn(copyEclipsePublisherTask, unzipP2Task)
+					val promotePropertiesFile = file('''«rootDir»/build-result/promote.properties''')
+					val publisherPropertiesFile = file('''«rootDir»/build-result/publisher.properties''')
+					doLast[
+						Files.write(generatePropoteProperties(repository), promotePropertiesFile, Charset.defaultCharset)
+						Files.write(generatePublisherProperties(repository), publisherPropertiesFile, Charset.defaultCharset)
+					]
+					outputs.file(promotePropertiesFile)
+					outputs.file(publisherPropertiesFile)
+				]
+				
+				task('''publishEclipse«repoName»''') => [
+					group = 'Eclipse'
+					description = 'Set up the build result directory used for Eclipse publishing'
+					dependsOn(zipP2RepoTask, generatePropertiesTask)
+				]
+			}
 		}
 	}
 	
@@ -133,10 +154,10 @@ class EclipsePublishing {
 	private def generatePublisherProperties(P2Repository repository) '''
 		version=«mainVersion»
 		scm.stream=«osspub.branch»
-		#packages.base=downloads
-		#tests.base=test-results
+		packages.base=downloads
+		tests.base=test-results
 		group.owner=«repository.group»
-		downloads.area=/home/data/httpd/download.eclipse.org/«repository.group.replace('.', '/')»/
+		downloads.area=/home/data/httpd/download.eclipse.org/«repository.group?.replace('.', '/')»/
 	'''
 	
 	private def getBuildPrefix() {
@@ -150,8 +171,8 @@ class EclipsePublishing {
 	
 	private def getBuildTimestamp(P2Repository repository) {
 		if (!repository.referenceBundle.nullOrEmpty) {
-			val referencePrefix = repository.referenceBundle + '_' + mainVersion + '.v'
-			val bundleDir = new File(buildDir, 'p2/repository/plugins')
+			val referencePrefix = '''«repository.referenceBundle»_«mainVersion».«repository.timestampPrefix»'''
+			val bundleDir = new File(buildDir, '''p2-«repository.name.toLowerCase»/repository/plugins''')
 			val referenceBundleFile = bundleDir?.listFiles?.findFirst[
 				name.startsWith(referencePrefix) && name.endsWith('.jar')
 			]

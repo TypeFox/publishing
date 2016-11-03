@@ -20,6 +20,8 @@ class P2Repository {
 	
 	String referenceBundle
 	
+	String timestampPrefix
+	
 	def void name(Object input) {
 		this.name = input.toString
 	}
@@ -34,6 +36,10 @@ class P2Repository {
 	
 	def void referenceBundle(Object input) {
 		this.referenceBundle = input.toString
+	}
+	
+	def void timestampPrefix(Object input) {
+		this.timestampPrefix = input.toString
 	}
 	
 }
