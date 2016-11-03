@@ -109,15 +109,18 @@ class EclipsePublishing {
 					dependsOn('''sign«repoName»P2Plugins''', '''sign«repoName»P2Features''')
 				from('''«rootDir»/build-result/p2-«repoName.toLowerCase»''')
 				destinationDir = file('''«rootDir»/build-result/downloads''')
-				if (repository.group.nullOrEmpty)
-					archiveName = '''«repoName.toLowerCase»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
-				else {
-					val firstSegmentIndex = repository.group.indexOf('.')
-					if (firstSegmentIndex < 0)
-						archiveName = '''«repository.group»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
-					else
-						archiveName = '''«repository.group.substring(firstSegmentIndex + 1).replace('.', '-')»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
-				}
+				doFirst[ task2 |
+					val it = task2 as Zip
+					if (repository.group.nullOrEmpty)
+						archiveName = '''«repoName.toLowerCase»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
+					else {
+						val firstSegmentIndex = repository.group.indexOf('.')
+						if (firstSegmentIndex < 0)
+							archiveName = '''«repository.group»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
+						else
+							archiveName = '''«repository.group.substring(firstSegmentIndex + 1).replace('.', '-')»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
+					}
+				]
 			]
 			
 			if (!repository.referenceBundle.nullOrEmpty) {
