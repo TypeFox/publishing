@@ -156,7 +156,7 @@ class EclipsePublishing {
 	
 	private def generatePublisherProperties(P2Repository repository) '''
 		version=«mainVersion»
-		scm.stream=«osspub.branch»
+		scm.stream=«IF buildPrefix == 'R' && !osspub.version.endsWith('.0')»maintenance«ELSE»head«ENDIF»
 		packages.base=downloads
 		tests.base=test-results
 		group.owner=«repository.group»
@@ -181,7 +181,7 @@ class EclipsePublishing {
 			]
 			if (referenceBundleFile !== null) {
 				val fileName = referenceBundleFile.name
-				return fileName.substring(referencePrefix.length, fileName.length - '.jar'.length)
+				return fileName.substring(referencePrefix.length, fileName.length - '.jar'.length).replace('-', '')
 			}
 		}
 	}
