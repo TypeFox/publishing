@@ -52,7 +52,7 @@ class JarSignTask extends DefaultTask {
 		]
 	}
 	
-	private def boolean processFile(File source, File target) {
+	private def void processFile(File source, File target) {
 		target.parentFile?.mkdirs()
 		if (alternateSourceDir !== null) {
 			val sourceSuffix = source.name.suffix
@@ -74,14 +74,15 @@ class JarSignTask extends DefaultTask {
 					} else if (alternateTargetDir !== null) {
 						val alternateTargetFile = new File(alternateTargetDir, equalSourceFile.name)
 						if (alternateTargetFile.exists) {
-							logger.lifecycle('''Reusing signed artifact «alternateTargetFile»''')
-							return copyFile(alternateTargetFile, target)
+							logger.lifecycle('''Reusing signed artifact «alternateTargetFile.withoutRootPath»''')
+							copyFile(alternateTargetFile, target)
+							return
 						}
 					}
 				}
 			}
 		}
-		return signFile(source, target)
+		signFile(source, target)
 	}
 	
 	private def withoutRootPath(File file) {
@@ -116,24 +117,26 @@ class JarSignTask extends DefaultTask {
 		].filter[fileName.endsWith(it)].maxBy[length]
 	}
 	
-	private def boolean signFile(File source, File target) {
+	private def void signFile(File source, File target) {
 		if (project.hasProperty('signing.skip') && project.property('signing.skip') == 'true') {
-			return copyFile(source, target)
+			logger.lifecycle('''Copy «source.withoutRootPath» (skipped signing)''')
+			copyFile(source, target)
 		} else {
+			logger.lifecycle('''Sign «source.withoutRootPath»''')
 			val result = project.exec[
 				executable = 'curl'
 				args = #['-o', target.path, '-F', '''file=@«source.path»''', SIGNING_SERVICE]
 			]
-			return result.exitValue == 0
+			if (result.exitValue != 0)
+				throw new GradleException('''Failed to sign «source.withoutRootPath»: exit value «result.exitValue»''')
 		}
 	}
 	
-	private def boolean copyFile(File source, File target) {
+	private def void copyFile(File source, File target) {
 		try {
 			Files.copy(source, target)
-			return true
 		} catch (IOException e) {
-			return false
+			throw new GradleException('''Failed to copy «source.withoutRootPath»''', e)
 		}
 	}
 	
