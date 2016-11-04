@@ -81,3 +81,17 @@ osspub {
 		//artifact 'xtend-android-archetype'
 	}
 }
+
+task publishMavenXtext {
+	group = 'Publishing'
+	description = 'Publishes all Xtext Maven artifacts'
+	dependsOn 'publishXtextLib', 'publishXtextCore', 'publishXtextExtras', 'publishXtextWeb', 'publishXtextMaven', 'publishXtextXtend'
+}
+
+if (osspub.signJars) {
+	task signMavenXtextJars {
+		group = 'Signing'
+		description = 'Signs all Xtext Maven artifacts'
+		dependsOn 'signXtextLibJars', 'signXtextCoreJars', 'signXtextExtrasJars', 'signXtextWebJars', 'signXtextMavenJars', 'signXtextXtendJars'
+	}
+}

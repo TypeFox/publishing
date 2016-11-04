@@ -3,7 +3,7 @@
  * Copyright 2016 TypeFox GmbH
  */
 
-apply plugin: io.typefox.publishing.PublishingPlugin.class
+apply plugin: 'io.typefox.osspub'
 apply from: 'artifacts.gradle'
 
 def jenkinsRepo = { jobName ->

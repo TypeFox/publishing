@@ -41,10 +41,6 @@ class PublishingPlugin implements Plugin<Project> {
 	}
 	
 	private def void configurePlugins() {
-		buildscript => [
-			repositories.jcenter()
-			dependencies.add('classpath', 'pw.prok:download:3.1.3')
-		]
 		apply(#{'plugin' -> 'pw.prok.download'})
 		apply(#{'plugin' -> 'signing'})
 		apply(#{'plugin' -> 'maven-publish'})

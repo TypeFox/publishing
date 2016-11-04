@@ -9,7 +9,9 @@ package io.typefox.publishing
 
 import com.google.common.io.Files
 import java.io.File
+import java.io.FilenameFilter
 import java.nio.charset.Charset
+import java.util.concurrent.Callable
 import org.eclipse.xtend.lib.annotations.FinalFieldsConstructor
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Project
@@ -70,16 +72,21 @@ class EclipsePublishing {
 			]
 			
 			if (osspub.signJars) {
+				val FilenameFilter jarFilter = [ dir, name |
+					name.endsWith('.jar') && (repository.namespaces.empty || repository.namespaces.exists[name.startsWith(it)])
+				]
 				task(#{'type' -> JarSignTask}, '''sign«repoName»P2Plugins''') => [ task |
 					val it = task as JarSignTask
 					group = 'Signing'
 					description = '''Send the plugins of the «repoName» P2 repository to the JAR signing service'''
 					dependsOn(unzipP2Task)
-					from = file('''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned/plugins''')
-					into = file('''«rootDir»/build-result/p2-«repoName.toLowerCase»/plugins''')
-					for (namespace : repository.namespaces) {
-						include('''**/«namespace»*.jar''')
-					}
+					from = files([
+						new File('''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned/plugins''').listFiles(jarFilter)
+					] as Callable<File[]>)
+					outputDir = file('''«rootDir»/build-result/p2-«repoName.toLowerCase»/plugins''')
+					alternateSourceDir = MavenPublishing.getArtifactsDir(project)
+					alternateTargetDir = MavenPublishing.getSignedArtifactsDir(project)
+					failOnInconsistency = osspub.failOnInconsistentJars
 				]
 				
 				task(#{'type' -> JarSignTask}, '''sign«repoName»P2Features''') => [ task |
@@ -87,11 +94,10 @@ class EclipsePublishing {
 					group = 'Signing'
 					description = '''Send the features of the «repoName» P2 repository to the JAR signing service'''
 					dependsOn(unzipP2Task)
-					from = file('''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned/features''')
-					into = file('''«rootDir»/build-result/p2-«repoName.toLowerCase»/features''')
-					for (namespace : repository.namespaces) {
-						include('''**/«namespace»*.jar''')
-					}
+					from = files([
+						new File('''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned/features''').listFiles(jarFilter)
+					] as Callable<File[]>)
+					outputDir = file('''«rootDir»/build-result/p2-«repoName.toLowerCase»/features''')
 				]
 			}
 			
@@ -185,11 +191,12 @@ class EclipsePublishing {
 		if (!repository.referenceFeature.nullOrEmpty) {
 			val referencePrefix = '''«repository.referenceFeature»_«mainVersion».«repository.timestampPrefix»'''
 			val bundleDir = new File(buildDir, '''p2-«repository.name.toLowerCase»/repository-unsigned/features''')
-			val referenceFeatureFile = bundleDir?.listFiles?.findFirst[
+			val FilenameFilter filter = [ dir, name |
 				name.startsWith(referencePrefix) && name.endsWith('.jar')
 			]
-			if (referenceFeatureFile !== null) {
-				val fileName = referenceFeatureFile.name
+			val referenceFeatureFiles = bundleDir.listFiles(filter)
+			if (referenceFeatureFiles.length > 0) {
+				val fileName = referenceFeatureFiles.get(0).name
 				return fileName.substring(referencePrefix.length, fileName.length - '.jar'.length).replace('-', '')
 			}
 		}

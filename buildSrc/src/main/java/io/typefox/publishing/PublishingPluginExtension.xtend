@@ -29,6 +29,8 @@ class PublishingPluginExtension {
 	
 	boolean signJars = false
 	
+	boolean failOnInconsistentJars = false
+	
 	val List<MavenProject> projects = newArrayList
 	
 	File userMavenSettings = new File(System.getProperty('user.home'), '.m2/settings.xml')
@@ -63,14 +65,21 @@ class PublishingPluginExtension {
 		if (input instanceof Boolean)
 			this.createSignatures = input
 		else if (input instanceof String)
-			this.createSignatures = Boolean.valueOf(input)
+			this.createSignatures = Boolean.parseBoolean(input)
 	}
 	
 	def void signJars(Object input) {
 		if (input instanceof Boolean)
 			this.signJars = input
 		else if (input instanceof String)
-			this.signJars = Boolean.valueOf(input)
+			this.signJars = Boolean.parseBoolean(input)
+	}
+	
+	def void failOnInconsistentJars(Object input) {
+		if (input instanceof Boolean)
+			this.failOnInconsistentJars = input
+		else if (input instanceof String)
+			this.failOnInconsistentJars = Boolean.parseBoolean(input)
 	}
 	
 	def project(Closure<MavenProject> configure) {

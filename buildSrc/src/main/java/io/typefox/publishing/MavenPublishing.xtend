@@ -7,6 +7,7 @@
  *******************************************************************************/
 package io.typefox.publishing
 
+import java.io.File
 import org.apache.maven.settings.building.DefaultSettingsBuilderFactory
 import org.apache.maven.settings.building.DefaultSettingsBuildingRequest
 import org.apache.maven.settings.building.SettingsBuildingException
@@ -29,7 +30,15 @@ import org.sonatype.plexus.components.sec.dispatcher.SecUtil
 @FinalFieldsConstructor
 class MavenPublishing {
 	
-	val classifiersExtensions = #[null -> 'jar', 'sources' -> 'jar', 'javadoc' -> 'jar', null -> 'pom']
+	public static val CLASSIFIERS = #[null -> 'jar', 'sources' -> 'jar', 'javadoc' -> 'jar', null -> 'pom']
+	
+	static def getArtifactsDir(Project project) {
+		new File(project.buildDir, 'artifacts')
+	}
+	
+	static def getSignedArtifactsDir(Project project) {
+		new File(project.buildDir, 'signedArtifacts')
+	}
 	
 	val extension Project project
 	val PublishingPluginExtension osspub
@@ -73,7 +82,7 @@ class MavenPublishing {
 			for (pubArtifact : pubProject.artifacts) {
 				if (pubArtifact.name.nullOrEmpty)
 					throw new InvalidUserDataException('''Artifact name must not be undefined (project: «pubProject.name»).''')
-				classifiersExtensions.filter[!pubArtifact.excludes(it)].forEach [ cePair |
+				CLASSIFIERS.filter[!pubArtifact.excludes(it)].forEach [ cePair |
 					dependencies.add(dependenciesConfig.name, #{
 						'group' -> pubArtifact.group,
 						'name' -> pubArtifact.name,
@@ -89,7 +98,7 @@ class MavenPublishing {
 				val it = task as Copy
 				description = '''Copy the built artifacts of «pubProject.name» into the build folder'''
 				from = dependenciesConfig
-				into = '''«buildDir»/artifacts'''
+				into = project.artifactsDir
 				for (pubArtifact : pubProject.artifacts) {
 					include('''**/«pubArtifact.name»-«osspub.version»*.jar''')
 					include('''**/«pubArtifact.name»-«osspub.version».pom''')
@@ -103,17 +112,16 @@ class MavenPublishing {
 					group = 'Signing'
 					description = '''Send the artifacts of «pubProject.name» to the JAR signing service'''
 					dependsOn(archivesCopyTask)
-					from = file('''«buildDir»/artifacts''')
-					into = file('''«buildDir»/signedArtifacts''')
-					for (pubArtifact : pubProject.artifacts) {
-						include('''**/«pubArtifact.name»-«osspub.version»*.jar''')
-					}
+					from = files(pubProject.artifacts.map[ pubArtifact |
+						'''«project.artifactsDir»/«pubArtifact.name»-«osspub.version».jar'''
+					])
+					outputDir = file('''«buildDir»/signedArtifacts''')
 				]
 			}
 		
 			for (pubArtifact : pubProject.artifacts) {
-				classifiersExtensions.filter[!pubArtifact.excludes(it)].forEach [ cePair |
-					val archiveFile = file(pubArtifact.getFileName(cePair.key, cePair.value, null))
+				CLASSIFIERS.filter[!pubArtifact.excludes(it)].forEach [ cePair |
+					val archiveFile = file(pubArtifact.getFileName(cePair.key, cePair.value))
 					artifacts.add(archivesConfig.name, archiveFile) => [ a |
 						val it = a as ConfigurablePublishArtifact
 						name = pubArtifact.name
@@ -129,8 +137,8 @@ class MavenPublishing {
 				val signTask = tasks.getByName('''signArchives«pubProject.name»''')
 		
 				for (pubArtifact : pubProject.artifacts) {
-					classifiersExtensions.filter[!pubArtifact.excludes(it)].forEach [ cePair |
-						val signatureFile = file(pubArtifact.getFileName(cePair.key, cePair.value, null) + '.asc')
+					CLASSIFIERS.filter[!pubArtifact.excludes(it)].forEach [ cePair |
+						val signatureFile = file(pubArtifact.getFileName(cePair.key, cePair.value) + '.asc')
 						signTask.outputs.file(signatureFile)
 						artifacts.add(signaturesConfig.name, signatureFile) => [ a |
 							val it = a as ConfigurablePublishArtifact
@@ -164,7 +172,7 @@ class MavenPublishing {
 				task(#{'type' -> Copy}, '''copy«publicationName.toFirstUpper»Pom''') => [ task |
 					val it = task as Copy
 					description = '''Copy the POM file for «pubArtifact.name» to make it consumable by the maven-publish plugin'''
-					from = pubArtifact.getFileName(null, 'pom', null)
+					from = pubArtifact.getFileName(null, 'pom')
 					into = '''«buildDir»/publications/«publicationName»'''
 					rename('.*', 'pom-default.xml')
 					if (osspub.signJars)
@@ -192,14 +200,12 @@ class MavenPublishing {
 		]
 	}
 	
-	private def String getFileName(MavenArtifact pubArtifact, String classifierName, String extensionName,
-			String artifactsDir) {
-		'''«buildDir»/«artifactsDir ?: (
-			if (osspub.signJars && classifierName === null && extensionName == 'jar')
-				'signedArtifacts'
+	private def String getFileName(MavenArtifact pubArtifact, String classifierName, String extensionName) {
+		'''«if (osspub.signJars && classifierName === null && extensionName == 'jar')
+				project.signedArtifactsDir
 			else
-				'artifacts'
-		)»/«pubArtifact.name»-«osspub.version»«IF classifierName !== null»-«classifierName»«ENDIF».«extensionName»'''
+				project.artifactsDir
+		»/«pubArtifact.name»-«osspub.version»«IF classifierName !== null»-«classifierName»«ENDIF».«extensionName»'''
 	}
 	
 	private def String getPublicationName(MavenArtifact pubArtifact) {
