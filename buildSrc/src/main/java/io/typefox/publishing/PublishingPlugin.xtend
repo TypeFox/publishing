@@ -8,7 +8,6 @@
 package io.typefox.publishing
 
 import java.io.File
-import org.gradle.api.GradleScriptException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -27,12 +26,18 @@ class PublishingPlugin implements Plugin<Project> {
 		this.osspub = project.extensions.create(EXTENSION_NAME, PublishingPluginExtension)
 		configurePlugins()
 		configureProperties()
-		val mavenPublishing = new MavenPublishing(project, osspub)
-		val eclipsePublishing = new EclipsePublishing(project, osspub)
-		project.afterEvaluate[
-			mavenPublishing.configure()
-			eclipsePublishing.configure()
-		]
+		if (osspub.version.nullOrEmpty) {
+			logger.warn('''
+				OSSPUB: Publishing tasks are disabled due to missing version parameter.
+				        Specify the version with -P«EXTENSION_NAME».version=<version>''')
+		} else {
+			val mavenPublishing = new MavenPublishing(project, osspub)
+			val eclipsePublishing = new EclipsePublishing(project, osspub)
+			project.afterEvaluate[
+				mavenPublishing.configure()
+				eclipsePublishing.configure()
+			]
+		}
 	}
 	
 	private def void configurePlugins() {
@@ -70,9 +75,6 @@ class PublishingPlugin implements Plugin<Project> {
 				}
 			}
 		]
-		
-		if (osspub.version.nullOrEmpty)
-			throw new GradleScriptException('''The version to be published has to be set with -P«EXTENSION_NAME».version=<version>''', null)
 		
 		// Configure credentials for the signing plugin
 		val ext = project.extensions.extraProperties
