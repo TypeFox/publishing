@@ -112,7 +112,7 @@ class MavenPublishing {
 					group = 'Signing'
 					description = '''Send the artifacts of «pubProject.name» to the JAR signing service'''
 					dependsOn(archivesCopyTask)
-					from = files(pubProject.artifacts.map[ pubArtifact |
+					from = files(pubProject.artifacts.filter[!excludes(null -> '.jar')].map[ pubArtifact |
 						'''«project.artifactsDir»/«pubArtifact.name»-«osspub.version».jar'''
 					])
 					outputDir = file('''«buildDir»/signedArtifacts''')
