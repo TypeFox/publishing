@@ -14,6 +14,7 @@ def jenkinsPipelineRepo = { jobName ->
 }
 repositories {
 	maven { url jenkinsRepo('lsapi') }
+	maven { url jenkinsRepo('lsp4j') }
 	maven { url jenkinsPipelineRepo('xtext-lib') }
 	maven { url jenkinsPipelineRepo('xtext-core') }
 	maven { url jenkinsPipelineRepo('xtext-extras') }

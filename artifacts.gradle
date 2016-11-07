@@ -12,6 +12,13 @@ osspub {
 		artifact 'io.typefox.lsapi.services'
 	}
 	project {
+		name 'Lsp4j'
+		group 'org.eclipse.lsp4j'
+		artifact 'org.eclipse.lsp4j'
+		artifact 'org.eclipse.lsp4j.annotations'
+		artifact 'org.eclipse.lsp4j.jsonrpc'
+	}
+	project {
 		name 'XtextLib'
 		group 'org.eclipse.xtext'
 		artifact 'org.eclipse.xtext.xbase.lib'
