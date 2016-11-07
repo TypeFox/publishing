@@ -32,6 +32,8 @@ class JarSignTask extends DefaultTask {
 	
 	static val SIGNING_SERVICE = 'http://build.eclipse.org:31338/sign'
 	
+	static val STDOUT_FORMAT = '    %{size_upload} bytes uploaded, %{size_download} bytes downloaded (%{time_total} s)'
+	
 	@InputFiles
 	FileCollection from
 	
@@ -127,7 +129,14 @@ class JarSignTask extends DefaultTask {
 			logger.lifecycle('''Sign «source.withoutRootPath»''')
 			val result = project.exec[
 				executable = 'curl'
-				args = #['-o', target.path, '-F', '''file=@«source.path»''', SIGNING_SERVICE]
+				args = #[
+					'--fail',
+					'--silent', '--show-error',
+					'--write-out', STDOUT_FORMAT,
+					'--output', target.path,
+					'--form', '''file=@«source.path»''',
+					SIGNING_SERVICE
+				]
 			]
 			if (result.exitValue != 0)
 				throw new GradleException('''Failed to sign «source.withoutRootPath»: exit value «result.exitValue»''')
