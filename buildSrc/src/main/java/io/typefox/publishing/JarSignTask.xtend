@@ -32,7 +32,7 @@ class JarSignTask extends DefaultTask {
 	
 	static val SIGNING_SERVICE = 'http://build.eclipse.org:31338/sign'
 	
-	static val STDOUT_FORMAT = '    %{size_upload} bytes uploaded, %{size_download} bytes downloaded (%{time_total} s)'
+	static val STDOUT_FORMAT = '    %{size_upload} bytes uploaded, %{size_download} bytes downloaded (%{time_total} s)\\n'
 	
 	@InputFiles
 	FileCollection from
@@ -127,19 +127,32 @@ class JarSignTask extends DefaultTask {
 			copyFile(source, target)
 		} else {
 			logger.lifecycle('''Sign «source.withoutRootPath»''')
-			val result = project.exec[
-				executable = 'curl'
-				args = #[
-					'--fail',
-					'--silent', '--show-error',
-					'--write-out', STDOUT_FORMAT,
-					'--output', target.path,
-					'--form', '''file=@«source.path»''',
-					SIGNING_SERVICE
+			try {
+				project.exec[
+					executable = 'curl'
+					args = #[
+						'--fail',
+						'--silent', '--show-error',
+						'--write-out', STDOUT_FORMAT,
+						'--output', target.path,
+						'--form', '''file=@«source.path»''',
+						SIGNING_SERVICE
+					]
 				]
-			]
-			if (result.exitValue != 0)
-				throw new GradleException('''Failed to sign «source.withoutRootPath»: exit value «result.exitValue»''')
+			} catch (GradleException exception) {
+				// Run again and print the service error message
+				try {
+					project.exec[
+						executable = 'curl'
+						args = #[
+							'--silent',
+							'--form', '''file=@«source.path»''',
+							SIGNING_SERVICE
+						]
+					]
+				} catch (GradleException e2) {}
+				throw exception
+			}
 		}
 	}
 	
