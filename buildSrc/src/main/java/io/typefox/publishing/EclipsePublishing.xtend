@@ -81,7 +81,7 @@ class EclipsePublishing {
 					description = '''Send the plugins of the «repoName» P2 repository to the JAR signing service'''
 					dependsOn(unzipP2Task)
 					from = files([
-						new File('''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned/plugins''').listFiles(jarFilter)
+						new File(buildDir, '''p2-«repoName.toLowerCase»/repository-unsigned/plugins''').listFiles(jarFilter)
 					] as Callable<File[]>)
 					outputDir = file('''«rootDir»/build-result/p2-«repoName.toLowerCase»/plugins''')
 					alternateSourceDir = MavenPublishing.getArtifactsDir(project)
@@ -95,7 +95,7 @@ class EclipsePublishing {
 					description = '''Send the features of the «repoName» P2 repository to the JAR signing service'''
 					dependsOn(unzipP2Task)
 					from = files([
-						new File('''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned/features''').listFiles(jarFilter)
+						new File(buildDir, '''p2-«repoName.toLowerCase»/repository-unsigned/features''').listFiles(jarFilter)
 					] as Callable<File[]>)
 					outputDir = file('''«rootDir»/build-result/p2-«repoName.toLowerCase»/features''')
 				]

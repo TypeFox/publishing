@@ -109,12 +109,14 @@ class JarSignTask extends DefaultTask {
 	}
 	
 	private def getSuffix(String fileName) {
-		MavenPublishing.CLASSIFIERS.map[
+		val matching = MavenPublishing.CLASSIFIERS.map[
 			if (key === null)
 				'.' + value
 			else
 				'-' + key + '.' + value
-		].filter[fileName.endsWith(it)].maxBy[length]
+		].filter[fileName.endsWith(it)]
+		if (!matching.empty)
+			matching.maxBy[length]
 	}
 	
 	private def void signFile(File source, File target) {
