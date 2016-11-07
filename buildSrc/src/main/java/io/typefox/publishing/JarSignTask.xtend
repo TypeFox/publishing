@@ -57,29 +57,24 @@ class JarSignTask extends DefaultTask {
 	private def void processFile(File source, File target) {
 		target.parentFile?.mkdirs()
 		if (alternateSourceDir !== null) {
-			val sourceSuffix = source.name.suffix
-			if (sourceSuffix !== null) {
-				val sourceArtifactName = source.name.artifactName
-				val FilenameFilter filter = [dir, name |
-					name.artifactName == sourceArtifactName && name.suffix == sourceSuffix
-				]
-				val matching = alternateSourceDir.listFiles(filter)
-				if (matching.length > 0) {
-					val sourceChecksum = source.checksum
-					val equalSourceFile = matching.findFirst[checksum == sourceChecksum]
-					if (equalSourceFile === null) {
-						val message = '''The artifact «source.withoutRootPath» matches «matching.map[withoutRootPath].join(', ')», but their content is unequal.'''
-						if (failOnInconsistency)
-							throw new GradleException(message)
-						else
-							logger.warn('Warning: ' + message)
-					} else if (alternateTargetDir !== null) {
-						val alternateTargetFile = new File(alternateTargetDir, equalSourceFile.name)
-						if (alternateTargetFile.exists) {
-							logger.lifecycle('''Reusing signed artifact «alternateTargetFile.withoutRootPath»''')
-							copyFile(alternateTargetFile, target)
-							return
-						}
+			val sourceIdentifier = source.name.identifier
+			val FilenameFilter filter = [dir, name | name.identifier == sourceIdentifier]
+			val matching = alternateSourceDir.listFiles(filter)
+			if (matching.length > 0) {
+				val sourceChecksum = source.checksum
+				val equalSourceFile = matching.findFirst[checksum == sourceChecksum]
+				if (equalSourceFile === null) {
+					val message = '''The artifact «source.withoutRootPath» matches «matching.map[withoutRootPath].join(', ')», but their content is unequal.'''
+					if (failOnInconsistency)
+						throw new GradleException(message)
+					else
+						logger.warn('Warning: ' + message)
+				} else if (alternateTargetDir !== null) {
+					val alternateTargetFile = new File(alternateTargetDir, equalSourceFile.name)
+					if (alternateTargetFile.exists) {
+						logger.lifecycle('''Reusing signed artifact «alternateTargetFile.withoutRootPath»''')
+						copyFile(alternateTargetFile, target)
+						return
 					}
 				}
 			}
@@ -94,11 +89,11 @@ class JarSignTask extends DefaultTask {
 			file.path
 	}
 	
-	private def getArtifactName(String fileName) {
+	private def getIdentifier(String fileName) {
 		val dashIndex = fileName.indexOf('-')
 		val underscoreIndex = fileName.indexOf('_')
 		val lastDotIndex = fileName.lastIndexOf('.')
-		if (dashIndex >= 0 && underscoreIndex >= 0)
+		val artifactName = if (dashIndex >= 0 && underscoreIndex >= 0)
 			fileName.substring(0, Math.min(dashIndex, underscoreIndex))
 		else if (dashIndex >= 0)
 			fileName.substring(0, dashIndex)
@@ -108,17 +103,18 @@ class JarSignTask extends DefaultTask {
 			fileName.substring(0, lastDotIndex)
 		else
 			fileName
-	}
-	
-	private def getSuffix(String fileName) {
 		val matching = MavenPublishing.CLASSIFIERS.map[
 			if (key === null)
 				'.' + value
 			else
 				'-' + key + '.' + value
 		].filter[fileName.endsWith(it)]
-		if (!matching.empty)
+		val suffix = if (!matching.empty)
 			matching.maxBy[length]
+		if (artifactName.endsWith('.source') && suffix == '.jar')
+			return artifactName.substring(0, artifactName.length - '.source'.length) -> '-sources.jar'
+		else
+			return artifactName -> suffix
 	}
 	
 	private def void signFile(File source, File target) {
