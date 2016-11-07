@@ -114,6 +114,8 @@ class MavenPublishing {
 					dependsOn(archivesCopyTask)
 					from = files(pubProject.artifacts.filter[!excludes(null -> 'jar')].map[ pubArtifact |
 						'''«project.artifactsDir»/«pubArtifact.name»-«osspub.version».jar'''
+					] + pubProject.artifacts.filter[!excludes('sources' -> 'jar')].map[ pubArtifact |
+						'''«project.artifactsDir»/«pubArtifact.name»-«osspub.version»-sources.jar'''
 					])
 					outputDir = file('''«buildDir»/signedArtifacts''')
 				]
@@ -201,7 +203,7 @@ class MavenPublishing {
 	}
 	
 	private def String getFileName(MavenArtifact pubArtifact, String classifierName, String extensionName) {
-		'''«if (osspub.signJars && classifierName === null && extensionName == 'jar')
+		'''«if (osspub.signJars && (classifierName === null || classifierName == 'sources') && extensionName == 'jar')
 				project.signedArtifactsDir
 			else
 				project.artifactsDir
