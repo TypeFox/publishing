@@ -8,6 +8,7 @@
 package io.typefox.publishing
 
 import com.google.common.io.Files
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FilenameFilter
 import java.io.IOException
@@ -136,7 +137,8 @@ class JarSignTask extends DefaultTask {
 					]
 				]
 			} catch (GradleException exception) {
-				// Run again and print the service error message
+				// Run again and print the service error message if it fails again
+				val errorOutput = new ByteArrayOutputStream
 				try {
 					project.exec[
 						executable = 'curl'
@@ -145,8 +147,11 @@ class JarSignTask extends DefaultTask {
 							'--form', '''file=@«source.path»''',
 							SIGNING_SERVICE
 						]
+						standardOutput = errorOutput
 					]
-				} catch (GradleException e2) {}
+				} catch (GradleException e2) {
+					project.logger.error(errorOutput.toString)
+				}
 				throw exception
 			}
 		}
