@@ -15,7 +15,7 @@ osspub {
 		name 'Lsp4j'
 		group 'org.eclipse.lsp4j'
 		artifact 'org.eclipse.lsp4j'
-		artifact 'org.eclipse.lsp4j.annotations'
+		artifact 'org.eclipse.lsp4j.generator'
 		artifact 'org.eclipse.lsp4j.jsonrpc'
 	}
 	project {
