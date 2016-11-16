@@ -83,7 +83,7 @@ class EclipsePublishing {
 					from = files([
 						new File(buildDir, '''p2-«repoName.toLowerCase»/repository-unsigned/plugins''').listFiles(jarFilter)
 					] as Callable<File[]>)
-					outputDir = file('''«rootDir»/build-result/p2-«repoName.toLowerCase»/plugins''')
+					outputDir = file('''«rootDir»/build-result/p2.repository/plugins''')
 					alternateSourceDir = MavenPublishing.getArtifactsDir(project)
 					alternateTargetDir = MavenPublishing.getSignedArtifactsDir(project)
 					failOnInconsistency = osspub.failOnInconsistentJars
@@ -97,7 +97,7 @@ class EclipsePublishing {
 					from = files([
 						new File(buildDir, '''p2-«repoName.toLowerCase»/repository-unsigned/features''').listFiles(jarFilter)
 					] as Callable<File[]>)
-					outputDir = file('''«rootDir»/build-result/p2-«repoName.toLowerCase»/features''')
+					outputDir = file('''«rootDir»/build-result/p2.repository/features''')
 				]
 			}
 			
@@ -107,7 +107,7 @@ class EclipsePublishing {
 				description = '''Copy the «repoName» P2 repository metadata to the build result directory'''
 				dependsOn(unzipP2Task)
 				from = '''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned'''
-				into = '''«rootDir»/build-result/p2-«repoName.toLowerCase»'''
+				into = '''«rootDir»/build-result/p2.repository'''
 				if (osspub.signJars) {
 					for (namespace : repository.namespaces) {
 						exclude('''**/«namespace»*.jar''')
@@ -122,7 +122,7 @@ class EclipsePublishing {
 				dependsOn(copyP2MetadataTask)
 				if (osspub.signJars)
 					dependsOn('''sign«repoName»P2Plugins''', '''sign«repoName»P2Features''')
-				from = '''«rootDir»/build-result/p2-«repoName.toLowerCase»'''
+				from = '''«rootDir»/build-result/p2.repository'''
 				destinationDir = file('''«rootDir»/build-result/downloads''')
 				doFirst[ task2 |
 					val it = task2 as Zip
