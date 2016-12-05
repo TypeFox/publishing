@@ -29,7 +29,7 @@ osspub {
 	p2Repository {
 		name 'Xtext'
 		group 'modeling.tmf.xtext'
-		url "http://services.typefox.io/open-source/jenkins/job/xtext/job/${osspub.branch}/lastSuccessfulBuild/artifact/build/org.eclipse.xtext.sdk.p2-repository-${osspub.version}.zip"
+		url "http://services.typefox.io/open-source/jenkins/job/xtext-umbrella/job/${osspub.branch}/lastSuccessfulBuild/artifact/build/org.eclipse.xtext.sdk.p2-repository-${osspub.version}.zip"
 		namespace 'org.eclipse.xtext'
 		namespace 'org.eclipse.xtend'
 		namespace 'org.eclipse.lsp4j'
