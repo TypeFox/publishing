@@ -10,6 +10,7 @@ package io.typefox.publishing
 import groovy.lang.Closure
 import java.util.List
 import org.eclipse.xtend.lib.annotations.Accessors
+import org.gradle.api.Action
 
 @Accessors(PUBLIC_GETTER)
 class MavenProject {
@@ -33,6 +34,13 @@ class MavenProject {
 		configure.delegate = result
 		configure.resolveStrategy = Closure.DELEGATE_FIRST
 		configure.call()
+		artifacts += result
+		return result
+	}
+	
+	def artifact(Action<MavenArtifact> configure) {
+		val result = new MavenArtifact(this)
+		configure.execute(result)
 		artifacts += result
 		return result
 	}

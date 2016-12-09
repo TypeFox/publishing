@@ -11,6 +11,7 @@ import groovy.lang.Closure
 import java.io.File
 import java.util.List
 import org.eclipse.xtend.lib.annotations.Accessors
+import org.gradle.api.Action
 
 @Accessors(PUBLIC_GETTER)
 class PublishingPluginExtension {
@@ -19,11 +20,7 @@ class PublishingPluginExtension {
 	
 	String branch = 'master'
 	
-	String mavenUploadRepository = 'Maven'
-	
-	String stagingUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-	
-	String snapshotUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
+	MavenUploadRepository mavenUploadRepository = new MavenUploadRepository
 	
 	boolean createSignatures = true
 	
@@ -49,16 +46,27 @@ class PublishingPluginExtension {
 		this.branch = input.toString
 	}
 	
-	def void mavenUploadRepository(Object input) {
-		this.mavenUploadRepository = input.toString
+	def mavenUploadRepository(String name) {
+		val result = new MavenUploadRepository
+		result.name(name)
+		mavenUploadRepository = result
+		return result
 	}
 	
-	def void stagingUrl(Object input) {
-		this.stagingUrl = input.toString
+	def mavenUploadRepository(Closure<MavenUploadRepository> configure) {
+		val result = new MavenUploadRepository
+		configure.delegate = result
+		configure.resolveStrategy = Closure.DELEGATE_FIRST
+		configure.call()
+		mavenUploadRepository = result
+		return result
 	}
 	
-	def void snapshotUrl(Object input) {
-		this.snapshotUrl = input.toString
+	def mavenUploadRepository(Action<MavenUploadRepository> configure) {
+		val result = new MavenUploadRepository
+		configure.execute(result)
+		mavenUploadRepository = result
+		return result
 	}
 	
 	def void createSignatures(Object input) {
@@ -91,6 +99,13 @@ class PublishingPluginExtension {
 		return result
 	}
 	
+	def project(Action<MavenProject> configure) {
+		val result = new MavenProject
+		configure.execute(result)
+		projects += result
+		return result
+	}
+	
 	def userMavenSettings(Object input) {
 		if (input instanceof File)
 			this.userMavenSettings = input
@@ -117,6 +132,13 @@ class PublishingPluginExtension {
 		configure.delegate = result
 		configure.resolveStrategy = Closure.DELEGATE_FIRST
 		configure.call()
+		p2Repositories += result
+		return result
+	}
+	
+	def p2Repository(Action<P2Repository> configure) {
+		val result = new P2Repository
+		configure.execute(result)
 		p2Repositories += result
 		return result
 	}

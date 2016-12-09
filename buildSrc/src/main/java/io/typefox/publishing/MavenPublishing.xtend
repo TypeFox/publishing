@@ -57,11 +57,12 @@ class MavenPublishing {
 		val isSnapshot = osspub.version.endsWith('-SNAPSHOT')
 		publishing.repositories [
 			maven [
-				name = osspub.mavenUploadRepository
+				val uploadRepo = osspub.mavenUploadRepository
+				name = uploadRepo.name
 				if (isSnapshot)
-					url = osspub.snapshotUrl
+					url = uploadRepo.snapshotUrl
 				else
-					url = osspub.stagingUrl
+					url = uploadRepo.stagingUrl
 				if (repoUsername !== null && repoPassword !== null) {
 					credentials [
 						username = repoUsername
@@ -194,7 +195,7 @@ class MavenPublishing {
 				group = 'Publishing'
 				description = '''Publishes all «pubProject.name» artifacts'''
 				for (artifact : pubProject.artifacts) {
-					dependsOn('''publish«artifact.publicationName.toFirstUpper»PublicationTo«osspub.mavenUploadRepository.toFirstUpper»Repository''')
+					dependsOn('''publish«artifact.publicationName.toFirstUpper»PublicationTo«osspub.mavenUploadRepository.name.toFirstUpper»Repository''')
 				}
 			]
 			
