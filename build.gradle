@@ -6,34 +6,61 @@
 apply plugin: 'io.typefox.osspub'
 apply from: 'artifacts.gradle'
 
-def jenkinsRepo = { jobName ->
-	"http://services.typefox.io/open-source/jenkins/job/${jobName}/lastStableBuild/artifact/build/maven-repository/"
+def mavenSource = findProperty('mavenSource')
+if (mavenSource == null || mavenSource == 'jenkins') {
+	def jenkinsRepo = { jobName ->
+		"http://services.typefox.io/open-source/jenkins/job/${jobName}/lastStableBuild/artifact/build/maven-repository/"
+	}
+	def jenkinsPipelineRepo = { jobName ->
+		"http://services.typefox.io/open-source/jenkins/job/${jobName}/job/${osspub.branch}/lastStableBuild/artifact/build/maven-repository/"
+	}
+	repositories {
+		maven { url jenkinsRepo('lsapi') }
+		maven { url jenkinsPipelineRepo('lsp4j') }
+		maven { url jenkinsPipelineRepo('xtext-lib') }
+		maven { url jenkinsPipelineRepo('xtext-core') }
+		maven { url jenkinsPipelineRepo('xtext-extras') }
+		maven { url jenkinsPipelineRepo('xtext-web') }
+		maven { url jenkinsPipelineRepo('xtext-maven') }
+		maven { url jenkinsPipelineRepo('xtext-xtend') }
+	}
+} else if (mavenSource == 'hudsonSnapshot') {
+	repositories {
+		maven {
+			url "https://hudson.eclipse.org/xtext/job/xtext-snapshots/lastStableBuild/artifact/build-result/maven-repository/"
+		}
+	}
+} else if (mavenSource == 'hudsonRelease') {
+	repositories {
+		maven {
+			url "https://hudson.eclipse.org/xtext/job/lsp4j-release/lastStableBuild/artifact/build-result/maven-repository/"
+		}
+	}
+} else {
+	throw new GradleException("Invalid mavenSource: $mavenSource")
 }
-def jenkinsPipelineRepo = { jobName ->
-	"http://services.typefox.io/open-source/jenkins/job/${jobName}/job/${osspub.branch}/lastStableBuild/artifact/build/maven-repository/"
-}
-repositories {
-	maven { url jenkinsRepo('lsapi') }
-	maven { url jenkinsPipelineRepo('lsp4j') }
-	maven { url jenkinsPipelineRepo('xtext-lib') }
-	maven { url jenkinsPipelineRepo('xtext-core') }
-	maven { url jenkinsPipelineRepo('xtext-extras') }
-	maven { url jenkinsPipelineRepo('xtext-web') }
-	maven { url jenkinsPipelineRepo('xtext-maven') }
-	maven { url jenkinsPipelineRepo('xtext-xtend') }
-	jcenter()
-}
+repositories.jcenter()
 
 osspub {
 	mavenUploadRepository 'ossrh'
+	
 	p2Repository {
 		name 'Xtext'
 		group 'modeling.tmf.xtext'
-		url "http://services.typefox.io/open-source/jenkins/job/xtext-umbrella/job/${osspub.branch}/lastSuccessfulBuild/artifact/build/org.eclipse.xtext.sdk.p2-repository-${osspub.version}.zip"
+		url "http://services.typefox.io/open-source/jenkins/job/xtext-umbrella/job/${osspub.branch}/lastStableBuild/artifact/build/org.eclipse.xtext.sdk.p2-repository-${osspub.version}.zip"
 		namespace 'org.eclipse.xtext'
 		namespace 'org.eclipse.xtend'
 		namespace 'org.eclipse.lsp4j'
 		referenceFeature 'org.eclipse.xtext.sdk'
+		timestampPrefix 'v'
+	}
+	
+	p2Repository {
+		name 'Lsp4j'
+		group 'technology.lsp4j'
+		url "http://services.typefox.io/open-source/jenkins/job/lsp4j/job/${osspub.branch}/lastStableBuild/artifact/build/lsp4j.p2-repository-${osspub.version}.zip"
+		namespace 'org.eclipse.lsp4j'
+		referenceFeature 'org.eclipse.lsp4j.sdk'
 		timestampPrefix 'v'
 	}
 }
