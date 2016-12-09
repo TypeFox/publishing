@@ -32,6 +32,8 @@ class MavenPublishing {
 	
 	public static val CLASSIFIERS = #[null -> 'jar', 'sources' -> 'jar', 'javadoc' -> 'jar', null -> 'pom']
 	
+	static val LOCAL_REPO_NAME = 'local'
+	
 	static def getArtifactsDir(Project project) {
 		new File(project.buildDir, 'artifacts')
 	}
@@ -66,6 +68,10 @@ class MavenPublishing {
 						password = repoPassword
 					]
 				}
+			]
+			maven [
+				name = LOCAL_REPO_NAME
+				url = '''file:«rootDir»/build-result/maven-repository'''
 			]
 		]
 	}
@@ -189,6 +195,14 @@ class MavenPublishing {
 				description = '''Publishes all «pubProject.name» artifacts'''
 				for (artifact : pubProject.artifacts) {
 					dependsOn('''publish«artifact.publicationName.toFirstUpper»PublicationTo«osspub.mavenUploadRepository.toFirstUpper»Repository''')
+				}
+			]
+			
+			task('''deploy«pubProject.name»''') => [
+				group = 'Publishing'
+				description = '''Deploys all «pubProject.name» artifacts to the local Maven repository'''
+				for (artifact : pubProject.artifacts) {
+					dependsOn('''publish«artifact.publicationName.toFirstUpper»PublicationTo«LOCAL_REPO_NAME.toFirstUpper»Repository''')
 				}
 			]
 		}
