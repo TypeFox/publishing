@@ -1,3 +1,4 @@
 .gradle/
 build/
 build-result/
+org.eclipse.buildship.core.prefs
