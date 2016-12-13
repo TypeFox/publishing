@@ -92,7 +92,7 @@ class EclipsePublishing {
 				val FilenameFilter jarFilter = [ dir, name |
 					name.endsWith('.jar') && (repository.namespaces.empty || repository.namespaces.exists[name.startsWith(it)])
 				]
-				task(#{'type' -> JarSignTask}, '''sign«repoName»P2Plugins''') => [ task |
+				val signPluginsTask = task(#{'type' -> JarSignTask}, '''sign«repoName»P2Plugins''') => [ task |
 					val it = task as JarSignTask
 					group = 'Signing'
 					description = '''Send the plugins of the «repoName» P2 repository to the JAR signing service'''
@@ -106,7 +106,7 @@ class EclipsePublishing {
 					failOnInconsistency = osspub.failOnInconsistentJars
 				]
 				
-				task(#{'type' -> JarSignTask}, '''sign«repoName»P2Features''') => [ task |
+				val signFeaturesTask = task(#{'type' -> JarSignTask}, '''sign«repoName»P2Features''') => [ task |
 					val it = task as JarSignTask
 					group = 'Signing'
 					description = '''Send the features of the «repoName» P2 repository to the JAR signing service'''
@@ -118,6 +118,7 @@ class EclipsePublishing {
 				]
 				
 				task('''update«repoName»ArtifactsChecksum''') => [
+					dependsOn(signPluginsTask, signFeaturesTask)
 					doLast [
 						updateArtifactsXml('''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned''',
 							'''«rootDir»/build-result/p2.repository''')
@@ -146,7 +147,7 @@ class EclipsePublishing {
 				description = '''Create a zip file from the «repoName» P2 repository'''
 				dependsOn(copyP2MetadataTask)
 				if (osspub.signJars)
-					dependsOn('''sign«repoName»P2Plugins''', '''sign«repoName»P2Features''', '''update«repoName»ArtifactsChecksum''')
+					dependsOn('''update«repoName»ArtifactsChecksum''')
 				from = '''«rootDir»/build-result/p2.repository'''
 				destinationDir = file('''«rootDir»/build-result/downloads''')
 				doFirst[ task2 |
@@ -275,7 +276,7 @@ class EclipsePublishing {
 									val version = artifact.getAttribute('version')
 									val classifier = artifact.getAttribute('classifier')
 									if (!id.empty && !version.empty && !classifier.empty) {
-										val md5 = computeMd5Checksum(sourceDir, id, version, classifier)
+										val md5 = computeMd5Checksum(destDir, id, version, classifier)
 										property.setAttribute('value', md5)
 									}
 								}
