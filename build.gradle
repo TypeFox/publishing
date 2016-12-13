@@ -52,7 +52,6 @@ osspub {
 		namespace 'org.eclipse.xtend'
 		namespace 'org.eclipse.lsp4j'
 		referenceFeature 'org.eclipse.xtext.sdk'
-		timestampPrefix 'v'
 	}
 	
 	p2Repository {
@@ -61,6 +60,5 @@ osspub {
 		url "http://services.typefox.io/open-source/jenkins/job/lsp4j/job/${osspub.branch}/lastStableBuild/artifact/build/lsp4j.p2-repository-${osspub.version}.zip"
 		namespace 'org.eclipse.lsp4j'
 		referenceFeature 'org.eclipse.lsp4j.sdk'
-		timestampPrefix 'v'
 	}
 }

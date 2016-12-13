@@ -7,17 +7,29 @@
  *******************************************************************************/
 package io.typefox.publishing
 
+import com.google.common.collect.AbstractIterator
 import com.google.common.io.Files
 import java.io.File
+import java.io.FileOutputStream
 import java.io.FilenameFilter
+import java.io.IOException
 import java.nio.charset.Charset
 import java.util.concurrent.Callable
+import java.util.jar.JarFile
+import java.util.jar.JarOutputStream
+import java.util.zip.ZipEntry
+import javax.xml.parsers.DocumentBuilderFactory
+import javax.xml.transform.TransformerFactory
+import javax.xml.transform.dom.DOMSource
+import javax.xml.transform.stream.StreamResult
 import org.eclipse.xtend.lib.annotations.FinalFieldsConstructor
+import org.gradle.api.GradleException
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.bundling.Zip
+import org.w3c.dom.Element
 import pw.prok.download.Download
 
 @FinalFieldsConstructor
@@ -99,6 +111,13 @@ class EclipsePublishing {
 					] as Callable<File[]>)
 					outputDir = file('''«rootDir»/build-result/p2.repository/features''')
 				]
+				
+				task('''update«repoName»ArtifactsChecksum''') => [
+					doLast [
+						updateArtifactsXml('''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned''',
+							'''«rootDir»/build-result/p2.repository''')
+					]
+				]
 			}
 			
 			val copyP2MetadataTask = task(#{'type' -> Copy}, '''copy«repoName»P2Metadata''') => [ task |
@@ -109,6 +128,7 @@ class EclipsePublishing {
 				from = '''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned'''
 				into = '''«rootDir»/build-result/p2.repository'''
 				if (osspub.signJars) {
+					exclude('**/artifacts.jar')
 					for (namespace : repository.namespaces) {
 						exclude('''**/«namespace»*.jar''')
 					}
@@ -121,7 +141,7 @@ class EclipsePublishing {
 				description = '''Create a zip file from the «repoName» P2 repository'''
 				dependsOn(copyP2MetadataTask)
 				if (osspub.signJars)
-					dependsOn('''sign«repoName»P2Plugins''', '''sign«repoName»P2Features''')
+					dependsOn('''sign«repoName»P2Plugins''', '''sign«repoName»P2Features''', '''update«repoName»ArtifactsChecksum''')
 				from = '''«rootDir»/build-result/p2.repository'''
 				destinationDir = file('''«rootDir»/build-result/downloads''')
 				doFirst[ task2 |
@@ -189,7 +209,7 @@ class EclipsePublishing {
 	
 	private def getBuildTimestamp(P2Repository repository) {
 		if (!repository.referenceFeature.nullOrEmpty) {
-			val referencePrefix = '''«repository.referenceFeature»_«mainVersion».«repository.timestampPrefix»'''
+			val referencePrefix = '''«repository.referenceFeature»_«mainVersion».'''
 			val bundleDir = new File(buildDir, '''p2-«repository.name.toLowerCase»/repository-unsigned/features''')
 			val FilenameFilter filter = [ dir, name |
 				name.startsWith(referencePrefix) && name.endsWith('.jar')
@@ -197,7 +217,14 @@ class EclipsePublishing {
 			val referenceFeatureFiles = bundleDir.listFiles(filter)
 			if (referenceFeatureFiles.length > 0) {
 				val fileName = referenceFeatureFiles.get(0).name
-				return fileName.substring(referencePrefix.length, fileName.length - '.jar'.length).replace('-', '')
+				val qualifier = fileName.substring(referencePrefix.length, fileName.length - '.jar'.length)
+				val timestamp = new StringBuilder
+				for (var i = 0; i < qualifier.length; i++) {
+					val c = qualifier.charAt(i)
+					if (Character.isDigit(c))
+						timestamp.append(c)
+				}
+				return timestamp.toString
 			}
 		}
 	}
@@ -208,6 +235,74 @@ class EclipsePublishing {
 			case 'S': osspub.version.substring(0, osspub.version.lastIndexOf('.'))
 			case 'R': osspub.version
 		}
+	}
+	
+	private def updateArtifactsXml(String sourceDir, String destDir) {
+		var JarFile sourceJar
+		var JarOutputStream targetJar
+		try {
+			sourceJar = new JarFile('''«sourceDir»/artifacts.jar''')
+			val artifactsEntry = sourceJar.getEntry('artifacts.xml')
+			if (artifactsEntry === null)
+				throw new GradleException('artifacts.jar does not contain artifacts.xml')
+			val builder = DocumentBuilderFactory.newInstance.newDocumentBuilder
+			val document = builder.parse(sourceJar.getInputStream(artifactsEntry))
+			val xmlRoot = document.documentElement
+			if (xmlRoot.tagName == 'repository') {
+				for (artifacts : xmlRoot.getElements('artifacts')) {
+					for (artifact : artifacts.getElements('artifact')) {
+						for (properties : artifact.getElements('properties')) {
+							for (property : properties.getElements('property')) {
+								if (property.getAttribute('name') == 'download.md5') {
+									val id = artifact.getAttribute('id')
+									val version = artifact.getAttribute('version')
+									val classifier = artifact.getAttribute('classifier')
+									if (!id.empty && !version.empty && !classifier.empty) {
+										val md5 = computeMd5Checksum(sourceDir, id, version, classifier)
+										property.setAttribute('value', md5)
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			
+			targetJar = new JarOutputStream(new FileOutputStream('''«destDir»/artifacts.jar'''))
+			targetJar.putNextEntry(new ZipEntry('artifacts.xml'))
+			val transformer = TransformerFactory.newInstance.newTransformer
+			transformer.transform(new DOMSource(document), new StreamResult(targetJar))
+			targetJar.closeEntry()
+		} finally {
+			try {
+				sourceJar?.close()
+				targetJar?.close()
+			} catch (IOException e) {}
+		}
+	}
+	
+	private def Iterable<Element> getElements(Element e, String name) {
+		val nodeList = e.getElementsByTagName(name)
+		return [
+			new AbstractIterator<Element> {
+				int i = 0
+				override protected computeNext() {
+					if (i < nodeList.length)
+						return nodeList.item(i++) as Element
+					else
+						return endOfData
+				}
+			}
+		]
+	}
+	
+	private def computeMd5Checksum(String sourceDir, String id, String version, String classifier) {
+		val sourcePath = switch classifier {
+			case 'osgi.bundle': '''«sourceDir»/plugins/«id»_«version».jar'''
+			case 'org.eclipse.update.feature': '''«sourceDir»/features/«id»_«version».jar'''
+		}
+		val bytes = FileChecksums.getMd5Checksum(new File(sourcePath))
+		return FileChecksums.toString(bytes)
 	}
 	
 }

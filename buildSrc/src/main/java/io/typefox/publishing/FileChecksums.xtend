@@ -12,11 +12,13 @@ import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.InputStream
+import java.security.DigestInputStream
+import java.security.MessageDigest
 import java.util.zip.CRC32
 
 class FileChecksums {
 	
-	static def long getChecksum(File file) throws FileNotFoundException, IOException {
+	static def long getCrcChecksum(File file) throws FileNotFoundException, IOException {
 		val checksum = new CRC32
 		var InputStream inputStream
 		try {
@@ -33,6 +35,35 @@ class FileChecksums {
 				inputStream?.close()
 			} catch (IOException e) {}
 		}
+	}
+	
+	static def byte[] getMd5Checksum(File file) throws FileNotFoundException, IOException {
+		val messageDigest = MessageDigest.getInstance('MD5')
+		var DigestInputStream digestInputStream
+		try {
+			digestInputStream = new DigestInputStream(new FileInputStream(file), messageDigest)
+			val buffer = newByteArrayOfSize(4096)
+			var int bytesRead
+			do {
+				bytesRead = digestInputStream.read(buffer)
+			} while (bytesRead > 0)
+		} finally {
+			try {
+				digestInputStream?.close()
+			} catch (IOException e) {}
+		}
+		return messageDigest.digest()
+	}
+	
+	static def String toString(byte[] bytes) {
+		val result = new StringBuilder
+		for (var i = 0; i < bytes.length; i++) {
+			var value = bytes.get(i) as int
+			if (value < 0)
+				value += 0x100
+			result.append(Integer.toString(value, 16))
+		}
+		return result.toString
 	}
 	
 }

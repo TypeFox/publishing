@@ -12,7 +12,7 @@ import org.apache.maven.settings.building.DefaultSettingsBuilderFactory
 import org.apache.maven.settings.building.DefaultSettingsBuildingRequest
 import org.apache.maven.settings.building.SettingsBuildingException
 import org.eclipse.xtend.lib.annotations.FinalFieldsConstructor
-import org.gradle.api.GradleScriptException
+import org.gradle.api.GradleException
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ConfigurablePublishArtifact
@@ -265,7 +265,7 @@ class MavenPublishing {
 						username = server.username
 						if (cipher.isEncryptedString(server.password)) {
 							if (decryptionKey === null)
-								throw new GradleScriptException('Missing settings-security.xml file.', null)
+								throw new GradleException('Missing settings-security.xml file.')
 							logger.info('''Maven Settings: using encrypted server entry for «repository.name» repository''')
 							password = cipher.decryptDecorated(server.password, decryptionKey)
 						} else {
@@ -281,7 +281,7 @@ class MavenPublishing {
 			if (gpgServer !== null) {
 				if (cipher.isEncryptedString(gpgServer.passphrase)) {
 					if (decryptionKey === null)
-						throw new GradleScriptException('Missing settings-security.xml file.', null)
+						throw new GradleException('Missing settings-security.xml file.')
 					logger.info('Maven Settings: using encrypted server entry for pgp signing')
 					ext.set(PublishingPlugin.SIGNING_PASSWORD, cipher.decryptDecorated(gpgServer.passphrase, decryptionKey))
 				} else {
@@ -290,7 +290,7 @@ class MavenPublishing {
 				}
 			}
 		} catch (SettingsBuildingException e) {
-			throw new GradleScriptException('Error while loading Maven settings.', e)
+			throw new GradleException('Error while loading Maven settings.', e)
 		}
 	}
 	

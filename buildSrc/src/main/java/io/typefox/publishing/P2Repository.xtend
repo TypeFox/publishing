@@ -23,8 +23,6 @@ class P2Repository {
 	
 	String referenceFeature
 	
-	String timestampPrefix
-	
 	def void name(Object input) {
 		this.name = input.toString
 	}
@@ -43,10 +41,6 @@ class P2Repository {
 	
 	def void referenceFeature(Object input) {
 		this.referenceFeature = input.toString
-	}
-	
-	def void timestampPrefix(Object input) {
-		this.timestampPrefix = input.toString
 	}
 	
 }

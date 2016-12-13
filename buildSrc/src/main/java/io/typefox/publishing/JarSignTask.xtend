@@ -61,9 +61,9 @@ class JarSignTask extends DefaultTask {
 			val sourceIdentifier = source.name.identifier
 			val FilenameFilter filter = [dir, name | name.identifier == sourceIdentifier]
 			val matching = alternateSourceDir.listFiles(filter)
-			if (matching.length > 0) {
-				val sourceChecksum = source.checksum
-				val equalSourceFile = matching.findFirst[checksum == sourceChecksum]
+			if (matching !== null && matching.length > 0) {
+				val sourceChecksum = source.crcChecksum
+				val equalSourceFile = matching.findFirst[crcChecksum == sourceChecksum]
 				if (equalSourceFile === null) {
 					val message = '''The artifact «source.withoutRootPath» matches «matching.map[withoutRootPath].join(', ')», but their content is unequal.'''
 					if (failOnInconsistency)
