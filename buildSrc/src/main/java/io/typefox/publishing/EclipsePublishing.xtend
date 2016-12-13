@@ -10,9 +10,12 @@ package io.typefox.publishing
 import com.google.common.collect.AbstractIterator
 import com.google.common.io.Files
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.FilenameFilter
 import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
 import java.nio.charset.Charset
 import java.util.concurrent.Callable
 import java.util.jar.JarFile
@@ -29,6 +32,8 @@ import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.bundling.Zip
+import org.tukaani.xz.LZMA2Options
+import org.tukaani.xz.XZOutputStream
 import org.w3c.dom.Element
 import pw.prok.download.Download
 
@@ -128,7 +133,7 @@ class EclipsePublishing {
 				from = '''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned'''
 				into = '''«rootDir»/build-result/p2.repository'''
 				if (osspub.signJars) {
-					exclude('**/artifacts.jar')
+					exclude('**/artifacts.*')
 					for (namespace : repository.namespaces) {
 						exclude('''**/«namespace»*.jar''')
 					}
@@ -195,7 +200,7 @@ class EclipsePublishing {
 		packages.base=downloads
 		tests.base=test-results
 		group.owner=«repository.group»
-		downloads.area=/home/data/httpd/download.eclipse.org/«repository.group?.replace('.', '/')»/
+		downloads.area=/home/data/httpd/download.eclipse.org/«repository.deployPath ?: repository.group?.replace('.', '/')»/
 	'''
 	
 	private def getBuildPrefix() {
@@ -238,15 +243,27 @@ class EclipsePublishing {
 	}
 	
 	private def updateArtifactsXml(String sourceDir, String destDir) {
+		var InputStream sourceStream
 		var JarFile sourceJar
+		var OutputStream targetStream
 		var JarOutputStream targetJar
+		var XZOutputStream targetXz
 		try {
-			sourceJar = new JarFile('''«sourceDir»/artifacts.jar''')
-			val artifactsEntry = sourceJar.getEntry('artifacts.xml')
-			if (artifactsEntry === null)
-				throw new GradleException('artifacts.jar does not contain artifacts.xml')
+			val artifactsXmlFile = new File('''«sourceDir»/artifacts.xml''')
+			val artifactsJarFile = new File('''«sourceDir»/artifacts.jar''')
+			if (artifactsXmlFile.exists) {
+				sourceStream = new FileInputStream(artifactsXmlFile)
+			} else if (artifactsJarFile.exists) {
+				sourceJar = new JarFile(artifactsJarFile)
+				val artifactsEntry = sourceJar.getEntry('artifacts.xml')
+				if (artifactsEntry === null)
+					throw new GradleException('P2 repository: artifacts.jar does not contain artifacts.xml')
+				sourceStream = sourceJar.getInputStream(artifactsEntry)
+			} else {
+				throw new GradleException('P2 repository does not contain artifacts.xml or artifacts.jar')
+			}
 			val builder = DocumentBuilderFactory.newInstance.newDocumentBuilder
-			val document = builder.parse(sourceJar.getInputStream(artifactsEntry))
+			val document = builder.parse(sourceStream)
 			val xmlRoot = document.documentElement
 			if (xmlRoot.tagName == 'repository') {
 				for (artifacts : xmlRoot.getElements('artifacts')) {
@@ -268,15 +285,32 @@ class EclipsePublishing {
 				}
 			}
 			
-			targetJar = new JarOutputStream(new FileOutputStream('''«destDir»/artifacts.jar'''))
-			targetJar.putNextEntry(new ZipEntry('artifacts.xml'))
 			val transformer = TransformerFactory.newInstance.newTransformer
-			transformer.transform(new DOMSource(document), new StreamResult(targetJar))
-			targetJar.closeEntry()
+			if (artifactsXmlFile.exists) {
+				targetStream = new FileOutputStream('''«destDir»/artifacts.xml''')
+				transformer.transform(new DOMSource(document), new StreamResult(targetStream))
+			}
+			
+			if (artifactsJarFile.exists) {
+				targetJar = new JarOutputStream(new FileOutputStream('''«destDir»/artifacts.jar'''))
+				targetJar.putNextEntry(new ZipEntry('artifacts.xml'))
+				transformer.transform(new DOMSource(document), new StreamResult(targetJar))
+				targetJar.closeEntry()
+			}
+			
+			val artifactsXmlXzFile = new File('''«sourceDir»/artifacts.xml.xz''')
+			if (artifactsXmlXzFile.exists) {
+				val options = new LZMA2Options
+				targetXz = new XZOutputStream(new FileOutputStream('''«destDir»/artifacts.xml.xz'''), options)
+				transformer.transform(new DOMSource(document), new StreamResult(targetXz))
+			}
 		} finally {
 			try {
-				sourceJar?.close()
+				targetXz?.close()
 				targetJar?.close()
+				targetStream?.close()
+				sourceJar?.close()
+				sourceStream?.close()
 			} catch (IOException e) {}
 		}
 	}

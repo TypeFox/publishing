@@ -58,6 +58,7 @@ osspub {
 		name 'Lsp4j'
 		group 'technology.lsp4j'
 		url "http://services.typefox.io/open-source/jenkins/job/lsp4j/job/${osspub.branch}/lastStableBuild/artifact/build/lsp4j.p2-repository-${osspub.version}.zip"
+		deployPath 'lsp4j'
 		namespace 'org.eclipse.lsp4j'
 		referenceFeature 'org.eclipse.lsp4j.sdk'
 	}

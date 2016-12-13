@@ -19,6 +19,8 @@ class P2Repository {
 	
 	String url
 	
+	String deployPath
+	
 	val List<String> namespaces = newArrayList
 	
 	String referenceFeature
@@ -33,6 +35,10 @@ class P2Repository {
 	
 	def void url(Object input) {
 		this.url = input.toString
+	}
+	
+	def void deployPath(Object input) {
+		this.deployPath = input.toString
 	}
 	
 	def void namespace(Object input) {
