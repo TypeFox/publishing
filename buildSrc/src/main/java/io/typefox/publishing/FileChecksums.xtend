@@ -61,7 +61,7 @@ class FileChecksums {
 			var value = bytes.get(i) as int
 			if (value < 0)
 				value += 0x100
-			result.append(Integer.toString(value, 16))
+			result.append(String.format('%02x', value))
 		}
 		return result.toString
 	}
