@@ -69,23 +69,30 @@ osspub {
 	project {
 		name 'XtextMaven'
 		group 'org.eclipse.xtext'
+		artifact 'xtext-maven-plugin'
 		artifact {
 			name 'org.eclipse.xtext.maven.parent'
 			excludeExtension 'jar'
 		}
-		artifact 'xtext-maven-plugin'
 	}
 	project {
 		name 'XtextXtend'
 		group 'org.eclipse.xtend'
 		artifact 'org.eclipse.xtend.core'
 		artifact 'org.eclipse.xtend.ide.common'
-		//artifact 'xtend-maven-plugin'
-		//artifact {
-		//	name 'xtend-archetype'
-		//	excludeClassifier 'javadoc'
-		//}
-		//artifact 'xtend-android-archetype'
+		artifact 'xtend-maven-plugin'
+		artifact {
+			name 'xtend-archetype'
+			excludeClassifier 'javadoc'
+		}
+		artifact {
+			name 'xtend-android-archetype'
+			excludeClassifier 'javadoc'
+		}
+		artifact {
+			name 'org.eclipse.xtend.maven.parent'
+			excludeExtension 'jar'
+		}
 	}
 }
 
