@@ -10,6 +10,7 @@ package io.typefox.publishing
 import java.io.File
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.tasks.Delete
 
 class PublishingPlugin implements Plugin<Project> {
 	
@@ -36,6 +37,12 @@ class PublishingPlugin implements Plugin<Project> {
 			project.afterEvaluate[
 				mavenPublishing.configure()
 				eclipsePublishing.configure()
+				
+				val cleanResultTask = task(#{'type' -> Delete}, '''cleanBuildResult''') => [ task |
+					val it = task as Delete
+					delete(file('''«rootDir»/build-result'''))
+				]
+				tasks.findByName('clean').dependsOn(cleanResultTask)
 			]
 		}
 	}

@@ -42,6 +42,15 @@ class PublishingPluginExtension {
 		this.version = input.toString
 	}
 	
+	def String getBaseVersion() {
+		if (version.endsWith('-SNAPSHOT'))
+			version.substring(0, version.length - '-SNAPSHOT'.length)
+		else if (version.split('\\.').length == 3)
+			version
+		else
+			version.substring(0, version.lastIndexOf('.'))
+	}
+	
 	def void branch(Object input) {
 		this.branch = input.toString
 	}

@@ -30,7 +30,6 @@ import org.gradle.api.GradleException
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
-import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.bundling.Zip
 import org.tukaani.xz.LZMA2Options
 import org.tukaani.xz.XZOutputStream
@@ -50,12 +49,6 @@ class EclipsePublishing {
 	}
 	
 	private def void configureTasks() {
-		val cleanResultTask = task(#{'type' -> Delete}, '''cleanBuildResult''') => [ task |
-			val it = task as Delete
-			delete(file('''«rootDir»/build-result'''))
-		]
-		tasks.findByName('clean').dependsOn(cleanResultTask)
-		
 		val copyEclipsePublisherTask = task(#{'type' -> Copy}, '''copyEclipsePublisherScripts''') => [ task |
 			val it = task as Copy
 			group = 'Eclipse'
@@ -196,7 +189,7 @@ class EclipsePublishing {
 	'''
 	
 	private def generatePublisherProperties(P2Repository repository) '''
-		version=«mainVersion»
+		version=«osspub.baseVersion»
 		scm.stream=«IF buildPrefix == 'R' && !osspub.version.endsWith('.0')»maintenance«ELSE»head«ENDIF»
 		packages.base=downloads
 		tests.base=test-results
@@ -215,7 +208,7 @@ class EclipsePublishing {
 	
 	private def getBuildTimestamp(P2Repository repository) {
 		if (!repository.referenceFeature.nullOrEmpty) {
-			val referencePrefix = '''«repository.referenceFeature»_«mainVersion».'''
+			val referencePrefix = '''«repository.referenceFeature»_«osspub.baseVersion».'''
 			val bundleDir = new File(buildDir, '''p2-«repository.name.toLowerCase»/repository-unsigned/features''')
 			val FilenameFilter filter = [ dir, name |
 				name.startsWith(referencePrefix) && name.endsWith('.jar')
@@ -232,14 +225,6 @@ class EclipsePublishing {
 				}
 				return timestamp.toString
 			}
-		}
-	}
-	
-	private def getMainVersion() {
-		switch buildPrefix {
-			case 'N': osspub.version.substring(0, osspub.version.indexOf('-'))
-			case 'S': osspub.version.substring(0, osspub.version.lastIndexOf('.'))
-			case 'R': osspub.version
 		}
 	}
 	
