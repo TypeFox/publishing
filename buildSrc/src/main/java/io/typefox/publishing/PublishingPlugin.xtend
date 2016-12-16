@@ -38,8 +38,7 @@ class PublishingPlugin implements Plugin<Project> {
 				mavenPublishing.configure()
 				eclipsePublishing.configure()
 				
-				val cleanResultTask = task(#{'type' -> Delete}, '''cleanBuildResult''') => [ task |
-					val it = task as Delete
+				val cleanResultTask = tasks.create('''cleanBuildResult''', Delete) [
 					delete(file('''«rootDir»/build-result'''))
 				]
 				tasks.findByName('clean').dependsOn(cleanResultTask)

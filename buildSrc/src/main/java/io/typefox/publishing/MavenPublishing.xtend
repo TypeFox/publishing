@@ -101,8 +101,7 @@ class MavenPublishing {
 			}
 			
 			// Step 2: Copy the dependencies to the local build folder
-			val archivesCopyTask = task(#{'type' -> Copy}, '''copy«pubProject.name»''') => [ task |
-				val it = task as Copy
+			val archivesCopyTask = tasks.create('''copy«pubProject.name»''', Copy) [
 				description = '''Copy the built artifacts of «pubProject.name» into the build folder'''
 				from = dependenciesConfig
 				into = project.artifactsDir
@@ -114,8 +113,7 @@ class MavenPublishing {
 		
 			// Step 3: Send the artifacts to the JAR signing service
 			if (osspub.signJars) {
-				task(#{'type' -> JarSignTask}, '''sign«pubProject.name»Jars''') => [ task |
-					val it = task as JarSignTask
+				tasks.create('''sign«pubProject.name»Jars''', JarSignTask) [
 					group = 'Signing'
 					description = '''Send the artifacts of «pubProject.name» to the JAR signing service'''
 					dependsOn(archivesCopyTask)
@@ -159,7 +157,7 @@ class MavenPublishing {
 					]
 				}
 			}
-		
+			
 			// Step 5: Create a publication for each project containing all artifacts and their signatures
 			for (pubArtifact : pubProject.artifacts) {
 				val publicationName = pubArtifact.publicationName
@@ -178,8 +176,7 @@ class MavenPublishing {
 					}
 				]
 				
-				task(#{'type' -> Copy}, '''copy«publicationName.toFirstUpper»Pom''') => [ task |
-					val it = task as Copy
+				tasks.create('''copy«publicationName.toFirstUpper»Pom''', Copy) [
 					description = '''Copy the POM file for «pubArtifact.name» to make it consumable by the maven-publish plugin'''
 					from = pubArtifact.getFileName(null, 'pom')
 					into = '''«buildDir»/publications/«publicationName»'''
@@ -191,7 +188,7 @@ class MavenPublishing {
 				]
 			}
 			
-			task('''publish«pubProject.name»''') => [
+			tasks.create('''publish«pubProject.name»''') [
 				group = 'Publishing'
 				description = '''Publishes all «pubProject.name» artifacts'''
 				for (artifact : pubProject.artifacts) {
@@ -199,7 +196,7 @@ class MavenPublishing {
 				}
 			]
 			
-			task('''deploy«pubProject.name»''') => [
+			tasks.create('''deploy«pubProject.name»''') [
 				group = 'Publishing'
 				description = '''Deploys all «pubProject.name» artifacts to the local Maven repository'''
 				for (artifact : pubProject.artifacts) {

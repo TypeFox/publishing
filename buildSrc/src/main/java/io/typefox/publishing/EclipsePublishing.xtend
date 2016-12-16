@@ -49,8 +49,7 @@ class EclipsePublishing {
 	}
 	
 	private def void configureTasks() {
-		val copyEclipsePublisherTask = task(#{'type' -> Copy}, '''copyEclipsePublisherScripts''') => [ task |
-			val it = task as Copy
+		val copyEclipsePublisherTask = tasks.create('''copyEclipsePublisherScripts''', Copy) [
 			group = 'Eclipse'
 			description = 'Copy the publisher scripts required for Eclipse publishing to the build result directory'
 			from = 'eclipse'
@@ -64,16 +63,14 @@ class EclipsePublishing {
 				throw new InvalidUserDataException('Repository URL must be defined.')
 			val repoName = repository.name
 			
-			val downloadP2Task = task(#{'type' -> Download}, '''download«repoName»P2Repository''') => [ task |
-				val it = task as Download
+			val downloadP2Task = tasks.create('''download«repoName»P2Repository''', Download) [
 				group = 'P2'
 				description = '''Download the zipped P2 repository for «repoName»'''
 				src(repository.url)
 	    		dest('''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned.zip''')
 			]
 			
-			val unzipP2Task = task(#{'type' -> Copy}, '''unzip«repoName»P2Repository''') => [ task |
-				val it = task as Copy
+			val unzipP2Task = tasks.create('''unzip«repoName»P2Repository''', Copy) [
 				group = 'P2'
 				description = '''Unzip the P2 repository for «repoName»'''
 				dependsOn(downloadP2Task)
@@ -85,8 +82,7 @@ class EclipsePublishing {
 				val FilenameFilter jarFilter = [ dir, name |
 					name.endsWith('.jar') && (repository.namespaces.empty || repository.namespaces.exists[name.startsWith(it)])
 				]
-				val signPluginsTask = task(#{'type' -> JarSignTask}, '''sign«repoName»P2Plugins''') => [ task |
-					val it = task as JarSignTask
+				val signPluginsTask = tasks.create('''sign«repoName»P2Plugins''', JarSignTask) [
 					group = 'Signing'
 					description = '''Send the plugins of the «repoName» P2 repository to the JAR signing service'''
 					dependsOn(unzipP2Task)
@@ -99,8 +95,7 @@ class EclipsePublishing {
 					failOnInconsistency = osspub.failOnInconsistentJars
 				]
 				
-				val signFeaturesTask = task(#{'type' -> JarSignTask}, '''sign«repoName»P2Features''') => [ task |
-					val it = task as JarSignTask
+				val signFeaturesTask = tasks.create('''sign«repoName»P2Features''', JarSignTask) [
 					group = 'Signing'
 					description = '''Send the features of the «repoName» P2 repository to the JAR signing service'''
 					dependsOn(unzipP2Task)
@@ -110,7 +105,7 @@ class EclipsePublishing {
 					outputDir = file('''«rootDir»/build-result/p2.repository/features''')
 				]
 				
-				task('''update«repoName»ArtifactsChecksum''') => [
+				tasks.create('''update«repoName»ArtifactsChecksum''') => [
 					dependsOn(signPluginsTask, signFeaturesTask)
 					doLast [
 						updateArtifactsXml('''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned''',
@@ -119,8 +114,7 @@ class EclipsePublishing {
 				]
 			}
 			
-			val copyP2MetadataTask = task(#{'type' -> Copy}, '''copy«repoName»P2Metadata''') => [ task |
-				val it = task as Copy
+			val copyP2MetadataTask = tasks.create('''copy«repoName»P2Metadata''', Copy) [
 				group = 'P2'
 				description = '''Copy the «repoName» P2 repository metadata to the build result directory'''
 				dependsOn(unzipP2Task)
@@ -134,8 +128,7 @@ class EclipsePublishing {
 				}
 			]
 			
-			val zipP2RepoTask = task(#{'type' -> Zip}, '''zip«repoName»P2Repository''') => [ task |
-				val it = task as Zip
+			val zipP2RepoTask = tasks.create('''zip«repoName»P2Repository''', Zip) [
 				group = 'P2'
 				description = '''Create a zip file from the «repoName» P2 repository'''
 				dependsOn(copyP2MetadataTask)
@@ -158,7 +151,7 @@ class EclipsePublishing {
 			]
 			
 			if (!repository.referenceFeature.nullOrEmpty) {
-				val generatePropertiesTask = task('''generateEclipse«repoName»PublisherProperties''') => [
+				val generatePropertiesTask = tasks.create('''generateEclipse«repoName»PublisherProperties''') [
 					group = 'Eclipse'
 					description = 'Generate properties files required by scripts for Eclipse publishing'
 					dependsOn(copyEclipsePublisherTask, unzipP2Task)
@@ -172,7 +165,7 @@ class EclipsePublishing {
 					outputs.file(publisherPropertiesFile)
 				]
 				
-				task('''publishEclipse«repoName»''') => [
+				tasks.create('''publishEclipse«repoName»''') [
 					group = 'Eclipse'
 					description = 'Set up the build result directory used for Eclipse publishing'
 					dependsOn(zipP2RepoTask, generatePropertiesTask)
