@@ -7,7 +7,9 @@
  *******************************************************************************/
 package io.typefox.publishing
 
+import com.google.common.io.Files
 import java.io.File
+import java.nio.charset.Charset
 import org.apache.maven.settings.building.DefaultSettingsBuilderFactory
 import org.apache.maven.settings.building.DefaultSettingsBuildingRequest
 import org.apache.maven.settings.building.SettingsBuildingException
@@ -155,6 +157,28 @@ class MavenPublishing {
 							builtBy(signTask)
 						]
 					]
+					if (pubArtifact.isPomOnly) {
+						// FIXME see explanation below
+						val dummyFile = file('''«project.artifactsDir»/«pubArtifact.name».dummy''')
+						tasks.create('''createDummyFor«pubArtifact.publicationName.toFirstUpper»''') [
+							doLast [
+								val content = '''
+									This artifact is published using Gradle and the maven-publish plugin. We need
+									to include a dummy artifact in order to prevent the maven-publish plugin from
+									setting the signature file as main artifact, which would result in no
+									signature being uploaded. This is a consequence of the lacking support for
+									signing in maven-publish.
+								'''
+								Files.write(content, dummyFile, Charset.forName('UTF-8'))
+							]
+						]
+						artifacts.add(signaturesConfig.name, dummyFile) => [ a |
+							val it = a as ConfigurablePublishArtifact
+							name = pubArtifact.name
+							extension = 'dummy'
+							builtBy(signTask)
+						]
+					}
 				}
 			}
 			
@@ -191,16 +215,16 @@ class MavenPublishing {
 			tasks.create('''publish«pubProject.name»''') [
 				group = 'Publishing'
 				description = '''Publishes all «pubProject.name» artifacts'''
-				for (artifact : pubProject.artifacts) {
-					dependsOn('''publish«artifact.publicationName.toFirstUpper»PublicationTo«osspub.mavenUploadRepository.name.toFirstUpper»Repository''')
+				for (pubArtifact : pubProject.artifacts) {
+					dependsOn('''publish«pubArtifact.publicationName.toFirstUpper»PublicationTo«osspub.mavenUploadRepository.name.toFirstUpper»Repository''')
 				}
 			]
 			
 			tasks.create('''deploy«pubProject.name»''') [
 				group = 'Publishing'
 				description = '''Deploys all «pubProject.name» artifacts to the local Maven repository'''
-				for (artifact : pubProject.artifacts) {
-					dependsOn('''publish«artifact.publicationName.toFirstUpper»PublicationTo«LOCAL_REPO_NAME.toFirstUpper»Repository''')
+				for (pubArtifact : pubProject.artifacts) {
+					dependsOn('''publish«pubArtifact.publicationName.toFirstUpper»PublicationTo«LOCAL_REPO_NAME.toFirstUpper»Repository''')
 				}
 			]
 		}
@@ -210,8 +234,19 @@ class MavenPublishing {
 		]
 		
 		tasks.withType(PublishToMavenRepository) [
-			dependsOn('''copy«publication.name.toFirstUpper»Pom''')
+			val pubName = publication.name
+			dependsOn('''copy«pubName.toFirstUpper»Pom''')
+			for (pubProject : osspub.projects) {
+				val pubArtifact = pubProject.artifacts.findFirst[publicationName == pubName]
+				if (pubArtifact !== null && pubArtifact.isPomOnly)
+					dependsOn('''createDummyFor«pubName.toFirstUpper»''')
+			}
 		]
+	}
+	
+	private def boolean isPomOnly(MavenArtifact pubArtifact) {
+		val filtered = CLASSIFIERS.filter[!pubArtifact.excludes(it)]
+		return filtered.size == 1 && filtered.head.key === null && filtered.head.value == 'pom'
 	}
 	
 	private def String getFileName(MavenArtifact pubArtifact, String classifierName, String extensionName) {
