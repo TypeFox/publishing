@@ -142,6 +142,31 @@ class MavenPublishing {
 			
 			// Step 4: Sign the local artifacts with a separate signature file
 			if (osspub.createSignatures) {
+				for (pubArtifact : pubProject.artifacts) {
+					if (pubArtifact.isPomOnly) {
+						// FIXME see explanation below
+						val dummyFile = file('''«project.artifactsDir»/«pubArtifact.name».dummy''')
+						val dummyCreator = tasks.create('''createDummyFor«pubArtifact.publicationName.toFirstUpper»''') [
+							doLast [
+								val content = '''
+									This artifact is published using Gradle and the maven-publish plugin. We need
+									to include a dummy artifact in order to prevent the maven-publish plugin from
+									setting the signature file as main artifact, which would result in no
+									signature being uploaded. This is a consequence of the lacking support for
+									signing in maven-publish.
+									https://discuss.gradle.org/t/how-to-publish-artifacts-signatures-asc-files-using-maven-publish-plugin/7422
+								'''
+								Files.write(content, dummyFile, Charset.forName('UTF-8'))
+							]
+						]
+						artifacts.add(archivesConfig.name, dummyFile) => [ a |
+							val it = a as ConfigurablePublishArtifact
+							name = pubArtifact.name
+							extension = 'dummy'
+							builtBy(dummyCreator)
+						]
+					}
+				}
 				signing.sign(archivesConfig)
 				val signTask = tasks.getByName('''signArchives«pubProject.name»''')
 		
@@ -158,24 +183,11 @@ class MavenPublishing {
 						]
 					]
 					if (pubArtifact.isPomOnly) {
-						// FIXME see explanation below
-						val dummyFile = file('''«project.artifactsDir»/«pubArtifact.name».dummy''')
-						tasks.create('''createDummyFor«pubArtifact.publicationName.toFirstUpper»''') [
-							doLast [
-								val content = '''
-									This artifact is published using Gradle and the maven-publish plugin. We need
-									to include a dummy artifact in order to prevent the maven-publish plugin from
-									setting the signature file as main artifact, which would result in no
-									signature being uploaded. This is a consequence of the lacking support for
-									signing in maven-publish.
-								'''
-								Files.write(content, dummyFile, Charset.forName('UTF-8'))
-							]
-						]
-						artifacts.add(signaturesConfig.name, dummyFile) => [ a |
+						val dummySignatureFile = file('''«project.artifactsDir»/«pubArtifact.name».dummy.asc''')
+						artifacts.add(signaturesConfig.name, dummySignatureFile) => [ a |
 							val it = a as ConfigurablePublishArtifact
 							name = pubArtifact.name
-							extension = 'dummy'
+							extension = 'dummy.asc'
 							builtBy(signTask)
 						]
 					}
