@@ -12,6 +12,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FilenameFilter
 import java.io.IOException
+import java.util.Set
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -47,6 +48,8 @@ class JarSignTask extends DefaultTask {
 	
 	boolean failOnInconsistency
 	
+	Set<String> acceptedDifferingJars = newHashSet
+	
 	@TaskAction
 	def void execute(IncrementalTaskInputs inputs) {
 		inputs.outOfDate[
@@ -65,11 +68,13 @@ class JarSignTask extends DefaultTask {
 				val sourceChecksum = source.crcChecksum
 				val equalSourceFile = matching.findFirst[crcChecksum == sourceChecksum]
 				if (equalSourceFile === null) {
-					val message = '''The artifact «source.withoutRootPath» matches «matching.map[withoutRootPath].join(', ')», but their content is unequal.'''
-					if (failOnInconsistency)
-						throw new GradleException(message)
-					else
-						logger.warn('Warning: ' + message)
+					if (!acceptedDifferingJars.contains(sourceIdentifier.key)) {
+						val message = '''The artifact «source.withoutRootPath» matches «matching.map[withoutRootPath].join(', ')», but their content is unequal.'''
+						if (failOnInconsistency)
+							throw new GradleException(message)
+						else
+							logger.warn('Warning: ' + message)
+					}
 				} else if (alternateTargetDir !== null) {
 					val alternateTargetFile = new File(alternateTargetDir, equalSourceFile.name)
 					if (alternateTargetFile.exists) {

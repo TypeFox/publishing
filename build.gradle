@@ -52,6 +52,8 @@ osspub {
 		namespace 'org.eclipse.xtend'
 		namespace 'org.eclipse.lsp4j'
 		referenceFeature 'org.eclipse.xtext.sdk'
+		acceptDifferingJars 'org.eclipse.xtend.core'
+		acceptDifferingJars 'org.eclipse.xtend.ide.common'
 	}
 	
 	p2Repository {

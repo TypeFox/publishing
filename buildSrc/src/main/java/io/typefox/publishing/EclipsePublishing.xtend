@@ -93,6 +93,7 @@ class EclipsePublishing {
 					alternateSourceDir = MavenPublishing.getArtifactsDir(project)
 					alternateTargetDir = MavenPublishing.getSignedArtifactsDir(project)
 					failOnInconsistency = osspub.failOnInconsistentJars
+					acceptedDifferingJars += repository.acceptedDifferingJars
 				]
 				
 				val signFeaturesTask = tasks.create('''sign«repoName»P2Features''', JarSignTask) [

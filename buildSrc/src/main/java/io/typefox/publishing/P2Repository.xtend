@@ -25,6 +25,8 @@ class P2Repository {
 	
 	String referenceFeature
 	
+	val List<String> acceptedDifferingJars = newArrayList
+	
 	def void name(Object input) {
 		this.name = input.toString
 	}
@@ -47,6 +49,10 @@ class P2Repository {
 	
 	def void referenceFeature(Object input) {
 		this.referenceFeature = input.toString
+	}
+	
+	def void acceptDifferingJars(Object input) {
+		this.acceptedDifferingJars += input.toString
 	}
 	
 }
