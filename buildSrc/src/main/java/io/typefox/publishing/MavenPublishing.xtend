@@ -248,10 +248,12 @@ class MavenPublishing {
 		tasks.withType(PublishToMavenRepository) [
 			val pubName = publication.name
 			dependsOn('''copy«pubName.toFirstUpper»Pom''')
-			for (pubProject : osspub.projects) {
-				val pubArtifact = pubProject.artifacts.findFirst[publicationName == pubName]
-				if (pubArtifact !== null && pubArtifact.isPomOnly)
-					dependsOn('''createDummyFor«pubName.toFirstUpper»''')
+			if (osspub.createSignatures) {
+				for (pubProject : osspub.projects) {
+					val pubArtifact = pubProject.artifacts.findFirst[publicationName == pubName]
+					if (pubArtifact !== null && pubArtifact.isPomOnly)
+						dependsOn('''createDummyFor«pubName.toFirstUpper»''')
+				}
 			}
 		]
 	}
