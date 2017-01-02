@@ -103,6 +103,12 @@ task publishMavenXtext {
 	dependsOn 'publishXtextLib', 'publishXtextCore', 'publishXtextExtras', 'publishXtextWeb', 'publishXtextMaven', 'publishXtextXtend'
 }
 
+task deployMavenXtext {
+	group = 'Publishing'
+	description = 'Deploys all Xtext Maven artifacts to the local Maven repository'
+	dependsOn 'deployXtextLib', 'deployXtextCore', 'deployXtextExtras', 'deployXtextWeb', 'deployXtextMaven', 'deployXtextXtend'
+}
+
 if (osspub.signJars) {
 	task signMavenXtextJars {
 		group = 'Signing'
