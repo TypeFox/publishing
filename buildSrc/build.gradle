@@ -1,9 +1,7 @@
 buildscript {
-	repositories {
-		jcenter()
-	}
+	repositories.jcenter()
 	dependencies {
-		classpath 'org.xtext:xtext-gradle-plugin:1.0.12'
+		classpath 'org.xtext:xtext-gradle-plugin:1.0.15'
 	}
 }
 
@@ -21,8 +19,12 @@ apply plugin: 'java'
 apply plugin: 'org.xtext.xtend'
 apply plugin: 'eclipse'
 
-sourceCompatibility = '1.6'
-targetCompatibility = '1.6'
+sourceCompatibility = '1.8'
+
+sourceSets {
+	main.xtendOutputDir = 'src/main/xtend-gen'
+	test.xtendOutputDir = 'src/test/xtend-gen'
+}
 
 dependencies {
 	compile gradleApi()
