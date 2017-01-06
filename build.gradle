@@ -29,11 +29,17 @@ if (mavenSource == null || mavenSource == 'jenkins') {
 		maven {
 			url "https://hudson.eclipse.org/xtext/job/xtext-snapshots/lastStableBuild/artifact/build-result/maven-repository/"
 		}
+		maven {
+			url "https://hudson.eclipse.org/lsp4j/job/lsp4j-snapshots/lastStableBuild/artifact/build-result/maven-repository/"
+		}
 	}
 } else if (mavenSource == 'hudsonRelease') {
 	repositories {
 		maven {
-			url "https://hudson.eclipse.org/xtext/job/lsp4j-release/lastStableBuild/artifact/build-result/maven-repository/"
+			url "https://hudson.eclipse.org/xtext/job/xtext-release/lastStableBuild/artifact/build-result/maven-repository/"
+		}
+		maven {
+			url "https://hudson.eclipse.org/lsp4j/job/lsp4j-release/lastStableBuild/artifact/build-result/maven-repository/"
 		}
 	}
 } else {
