@@ -21,11 +21,6 @@ apply plugin: 'eclipse'
 
 sourceCompatibility = '1.8'
 
-sourceSets {
-	main.xtendOutputDir = 'src/main/xtend-gen'
-	test.xtendOutputDir = 'src/test/xtend-gen'
-}
-
 dependencies {
 	compile gradleApi()
 	compile "org.eclipse.xtend:org.eclipse.xtend.lib:$xtextVersion"
