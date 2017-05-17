@@ -35,6 +35,7 @@ import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.bundling.Zip
 import org.tukaani.xz.LZMA2Options
 import org.tukaani.xz.XZOutputStream
+import org.w3c.dom.Document
 import org.w3c.dom.Element
 import pw.prok.download.Download
 
@@ -119,13 +120,15 @@ class EclipsePublishing {
 				val packPluginsTask = if (osspub.packJars) tasks.create('''pack«repoName»P2Plugins''', Pack200Task) [
 					group = 'Build'
 					description = '''Packs the plugins of the «repoName» P2 repository with pack200'''
-					dependsOn(signPluginsTask)
-					if (osspub.signJars)
+					if (osspub.signJars) {
+						dependsOn(signPluginsTask)
 						from = files(listFiles(new File(rootDir, '''build-result/p2.repository/plugins'''),
 								jarFilter && namespaceFilter && nonSourceFilter))
-					else
+					} else {
+						dependsOn('''repack«repoName»P2Plugins''')
 						from = files(listFiles(new File(buildDir, '''p2-«repoName.toLowerCase»/repository-unsigned/plugins'''),
 								jarFilter && namespaceFilter && nonSourceFilter))
+					}
 					outputDir = file('''«rootDir»/build-result/p2.repository/plugins''')
 				]
 				
@@ -145,7 +148,7 @@ class EclipsePublishing {
 						dependsOn(packPluginsTask)
 					doLast [
 						updateArtifactsXml('''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned''',
-							'''«rootDir»/build-result/p2.repository''')
+							'''«rootDir»/build-result/p2.repository''', repository)
 					]
 				]
 			}
@@ -154,6 +157,8 @@ class EclipsePublishing {
 				group = 'P2'
 				description = '''Copy the «repoName» P2 repository metadata to the build result directory'''
 				dependsOn(unzipP2Task)
+				if (osspub.packJars)
+					dependsOn('''repack«repoName»P2Plugins''')
 				from = '''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned'''
 				into = '''«rootDir»/build-result/p2.repository'''
 				if (osspub.signJars || osspub.packJars)
@@ -211,12 +216,12 @@ class EclipsePublishing {
 		}
 	}
 	
-	private def Callable<File[]> listFiles(File folder, FilenameFilter filter) {
+	private def Callable<File[]> listFiles(File dir, FilenameFilter filter) {
 		[
 			if (filter === null)
-				folder.listFiles
+				dir.listFiles
 			else
-				folder.listFiles(filter)
+				dir.listFiles(filter)
 		]
 	}
 	
@@ -273,7 +278,7 @@ class EclipsePublishing {
 		}
 	}
 	
-	private def updateArtifactsXml(String sourceDir, String destDir) {
+	private def updateArtifactsXml(String sourceDir, String destDir, P2Repository repository) {
 		var InputStream sourceStream
 		var JarFile sourceJar
 		var OutputStream targetStream
@@ -295,26 +300,7 @@ class EclipsePublishing {
 			}
 			val builder = DocumentBuilderFactory.newInstance.newDocumentBuilder
 			val document = builder.parse(sourceStream)
-			val xmlRoot = document.documentElement
-			if (xmlRoot.tagName == 'repository') {
-				for (artifacts : xmlRoot.getElements('artifacts')) {
-					for (artifact : artifacts.getElements('artifact')) {
-						for (properties : artifact.getElements('properties')) {
-							for (property : properties.getElements('property')) {
-								if (property.getAttribute('name') == 'download.md5') {
-									val id = artifact.getAttribute('id')
-									val version = artifact.getAttribute('version')
-									val classifier = artifact.getAttribute('classifier')
-									if (!id.empty && !version.empty && !classifier.empty) {
-										val md5 = computeMd5Checksum(destDir, id, version, classifier)
-										property.setAttribute('value', md5)
-									}
-								}
-							}
-						}
-					}
-				}
-			}
+			postProcess(document, destDir, repository)
 			
 			val transformer = TransformerFactory.newInstance.newTransformer
 			if (artifactsXmlFile.exists) {
@@ -346,6 +332,59 @@ class EclipsePublishing {
 		}
 	}
 	
+	private def postProcess(Document document, String destDir, P2Repository repository) {
+		val xmlRoot = document.documentElement
+		if (xmlRoot.tagName == 'repository') {
+			for (artifacts : xmlRoot.getElements('artifacts')) {
+				for (artifact : artifacts.getElements('artifact')) {
+					val id = artifact.getAttribute('id')
+					val version = artifact.getAttribute('version')
+					val classifier = artifact.getAttribute('classifier')
+					if (repository.namespaces.empty || repository.namespaces.exists[id.startsWith(it)]) {
+						val isPacked = osspub.packJars && classifier == 'osgi.bundle' && !id.endsWith('.source')
+						for (properties : artifact.getElements('properties')) {
+							for (property : properties.getElements('property')) {
+								switch property.getAttribute('name') {
+									case 'artifact.size': {
+										val size = computeSize(destDir, id, version, classifier, 'jar')
+										if (size !== null)
+											property.setAttribute('value', size)
+									}
+									case 'download.size': {
+										val size = computeSize(destDir, id, version, classifier, if (isPacked) 'pack.gz' else 'jar')
+										if (size !== null)
+											property.setAttribute('value', size)
+									}
+									case 'download.md5': {
+										val md5 = computeMd5Checksum(destDir, id, version, classifier, 'jar')
+										if (md5 !== null)
+											property.setAttribute('value', md5)
+									}
+								}
+							}
+							if (isPacked) {
+								val format = document.createElement('property')
+								format.setAttribute('name', 'format')
+								format.setAttribute('value', 'packed')
+								properties.appendChild(format)
+								properties.setAttribute('size', Integer.toString(properties.getElements('property').size))
+							}
+						}
+						if (isPacked && artifact.getElements('processing').empty) {
+							val processing = document.createElement('processing')
+							processing.setAttribute('size', '1')
+							artifact.appendChild(processing)
+							val step = document.createElement('step')
+							step.setAttribute('id', 'org.eclipse.equinox.p2.processing.Pack200Unpacker')
+							step.setAttribute('required', 'true')
+							processing.appendChild(step)
+						}
+					}
+				}
+			}
+		}
+	}
+	
 	private def Iterable<Element> getElements(Element e, String name) {
 		val nodeList = e.getElementsByTagName(name)
 		return [
@@ -361,13 +400,29 @@ class EclipsePublishing {
 		]
 	}
 	
-	private def computeMd5Checksum(String sourceDir, String id, String version, String classifier) {
-		val sourcePath = switch classifier {
-			case 'osgi.bundle': '''«sourceDir»/plugins/«id»_«version».jar'''
-			case 'org.eclipse.update.feature': '''«sourceDir»/features/«id»_«version».jar'''
+	private def computeSize(String dir, String id, String version, String classifier, String ext) {
+		val path = switch classifier {
+			case 'osgi.bundle': '''«dir»/plugins/«id»_«version».«ext»'''
+			case 'org.eclipse.update.feature': '''«dir»/features/«id»_«version».«ext»'''
+			default: ''
 		}
-		val bytes = FileChecksums.getMd5Checksum(new File(sourcePath))
-		return FileChecksums.toString(bytes)
+		val file = new File(path)
+		if (file.exists) {
+			return Long.toString(file.length)
+		}
+	}
+	
+	private def computeMd5Checksum(String dir, String id, String version, String classifier, String ext) {
+		val path = switch classifier {
+			case 'osgi.bundle': '''«dir»/plugins/«id»_«version».«ext»'''
+			case 'org.eclipse.update.feature': '''«dir»/features/«id»_«version».«ext»'''
+			default: ''
+		}
+		val file = new File(path)
+		if (file.exists) {
+			val bytes = FileChecksums.getMd5Checksum(file)
+			return FileChecksums.toString(bytes)
+		}
 	}
 	
 }
