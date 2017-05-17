@@ -47,10 +47,7 @@ class Pack200Task extends DefaultTask {
 		log.close()
 		
 		inputs.outOfDate[
-			if (!file.name.endsWith('.jar'))
-				throw new GradleException('''Input file must be a jar file: «file.withoutRootPath»''')
-			val target = if (!outputDir.path.empty)
-				new File(outputDir, file.name.substring(0, file.name.length - '.jar'.length) + '.pack.gz')
+			val target = if (!outputDir.path.empty) new File(outputDir, file.name + '.pack.gz')
 			processFile(file, target)
 		]
 	}

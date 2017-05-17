@@ -353,7 +353,7 @@ class EclipsePublishing {
 											property.setAttribute('value', size)
 									}
 									case 'download.size': {
-										val size = computeSize(destDir, id, version, classifier, if (isPacked) 'pack.gz' else 'jar')
+										val size = computeSize(destDir, id, version, classifier, if (isPacked) 'jar.pack.gz' else 'jar')
 										if (size !== null)
 											property.setAttribute('value', size)
 									}
