@@ -9,6 +9,8 @@ package io.typefox.publishing
 
 import com.google.common.collect.AbstractIterator
 import com.google.common.io.Files
+import io.typefox.publishing.tasks.JarSignTask
+import io.typefox.publishing.tasks.Pack200Task
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -78,17 +80,35 @@ class EclipsePublishing {
 				into = '''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned'''
 			]
 			
-			if (osspub.signJars) {
-				val FilenameFilter jarFilter = [ dir, name |
-					name.endsWith('.jar') && (repository.namespaces.empty || repository.namespaces.exists[name.startsWith(it)])
+			val FilenameFilter jarFilter = [ dir, name |
+				name.endsWith('.jar')
+			]
+			val FilenameFilter namespaceFilter = [ dir, name |
+				repository.namespaces.empty || repository.namespaces.exists[name.startsWith(it)]
+			]
+			val FilenameFilter nonSourceFilter = [ dir, name |
+				!name.matches('.+\\.source_.+\\.jar')
+			]
+			if (osspub.packJars) {
+				tasks.create('''repack«repoName»P2Plugins''', Pack200Task) [
+					group = 'Build'
+					description = '''Repacks the plugins of the «repoName» P2 repository with pack200'''
+					dependsOn(unzipP2Task)
+					from = files(listFiles(new File(buildDir, '''p2-«repoName.toLowerCase»/repository-unsigned/plugins'''),
+							jarFilter && namespaceFilter && nonSourceFilter))
+					repack = true
 				]
-				val signPluginsTask = tasks.create('''sign«repoName»P2Plugins''', JarSignTask) [
+			}
+			
+			if (osspub.signJars || osspub.packJars) {
+				val signPluginsTask = if (osspub.signJars) tasks.create('''sign«repoName»P2Plugins''', JarSignTask) [
 					group = 'Signing'
 					description = '''Send the plugins of the «repoName» P2 repository to the JAR signing service'''
 					dependsOn(unzipP2Task)
-					from = files([
-						new File(buildDir, '''p2-«repoName.toLowerCase»/repository-unsigned/plugins''').listFiles(jarFilter)
-					] as Callable<File[]>)
+					if (osspub.packJars)
+						dependsOn('''repack«repoName»P2Plugins''')
+					from = files(listFiles(new File(buildDir, '''p2-«repoName.toLowerCase»/repository-unsigned/plugins'''),
+							jarFilter && namespaceFilter))
 					outputDir = file('''«rootDir»/build-result/p2.repository/plugins''')
 					alternateSourceDir = MavenPublishing.getArtifactsDir(project)
 					alternateTargetDir = MavenPublishing.getSignedArtifactsDir(project)
@@ -96,18 +116,33 @@ class EclipsePublishing {
 					acceptedDifferingJars += repository.acceptedDifferingJars
 				]
 				
-				val signFeaturesTask = tasks.create('''sign«repoName»P2Features''', JarSignTask) [
+				val packPluginsTask = if (osspub.packJars) tasks.create('''pack«repoName»P2Plugins''', Pack200Task) [
+					group = 'Build'
+					description = '''Packs the plugins of the «repoName» P2 repository with pack200'''
+					dependsOn(signPluginsTask)
+					if (osspub.signJars)
+						from = files(listFiles(new File(rootDir, '''build-result/p2.repository/plugins'''),
+								jarFilter && namespaceFilter && nonSourceFilter))
+					else
+						from = files(listFiles(new File(buildDir, '''p2-«repoName.toLowerCase»/repository-unsigned/plugins'''),
+								jarFilter && namespaceFilter && nonSourceFilter))
+					outputDir = file('''«rootDir»/build-result/p2.repository/plugins''')
+				]
+				
+				val signFeaturesTask = if (osspub.signJars) tasks.create('''sign«repoName»P2Features''', JarSignTask) [
 					group = 'Signing'
 					description = '''Send the features of the «repoName» P2 repository to the JAR signing service'''
 					dependsOn(unzipP2Task)
-					from = files([
-						new File(buildDir, '''p2-«repoName.toLowerCase»/repository-unsigned/features''').listFiles(jarFilter)
-					] as Callable<File[]>)
+					from = files(listFiles(new File(buildDir, '''p2-«repoName.toLowerCase»/repository-unsigned/features'''),
+							jarFilter && namespaceFilter))
 					outputDir = file('''«rootDir»/build-result/p2.repository/features''')
 				]
 				
 				tasks.create('''update«repoName»ArtifactsChecksum''') => [
-					dependsOn(signPluginsTask, signFeaturesTask)
+					if (osspub.signJars) 
+						dependsOn(signPluginsTask, signFeaturesTask)
+					if (osspub.packJars) 
+						dependsOn(packPluginsTask)
 					doLast [
 						updateArtifactsXml('''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned''',
 							'''«rootDir»/build-result/p2.repository''')
@@ -121,8 +156,9 @@ class EclipsePublishing {
 				dependsOn(unzipP2Task)
 				from = '''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned'''
 				into = '''«rootDir»/build-result/p2.repository'''
-				if (osspub.signJars) {
+				if (osspub.signJars || osspub.packJars)
 					exclude('**/artifacts.*')
+				if (osspub.signJars) {
 					for (namespace : repository.namespaces) {
 						exclude('''**/«namespace»*.jar''')
 					}
@@ -133,7 +169,7 @@ class EclipsePublishing {
 				group = 'P2'
 				description = '''Create a zip file from the «repoName» P2 repository'''
 				dependsOn(copyP2MetadataTask)
-				if (osspub.signJars)
+				if (osspub.signJars || osspub.packJars)
 					dependsOn('''update«repoName»ArtifactsChecksum''')
 				from = '''«rootDir»/build-result/p2.repository'''
 				destinationDir = file('''«rootDir»/build-result/downloads''')
@@ -173,6 +209,21 @@ class EclipsePublishing {
 				]
 			}
 		}
+	}
+	
+	private def Callable<File[]> listFiles(File folder, FilenameFilter filter) {
+		[
+			if (filter === null)
+				folder.listFiles
+			else
+				folder.listFiles(filter)
+		]
+	}
+	
+	private def FilenameFilter &&(FilenameFilter f1, FilenameFilter f2) {
+		[ dir, name |
+			f1.accept(dir, name) && f2.accept(dir, name)
+		]
 	}
 	
 	private def generatePropoteProperties(P2Repository repository) '''

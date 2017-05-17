@@ -26,6 +26,8 @@ class PublishingPluginExtension {
 	
 	boolean signJars = false
 	
+	boolean packJars = false
+	
 	boolean failOnInconsistentJars = false
 	
 	val List<MavenProject> projects = newArrayList
@@ -90,6 +92,13 @@ class PublishingPluginExtension {
 			this.signJars = input
 		else if (input instanceof String)
 			this.signJars = Boolean.parseBoolean(input)
+	}
+	
+	def void packJars(Object input) {
+		if (input instanceof Boolean)
+			this.packJars = input
+		else if (input instanceof String)
+			this.packJars = Boolean.parseBoolean(input)
 	}
 	
 	def void failOnInconsistentJars(Object input) {

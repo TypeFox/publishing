@@ -5,9 +5,10 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  *******************************************************************************/
-package io.typefox.publishing
+package io.typefox.publishing.tasks
 
 import com.google.common.io.Files
+import io.typefox.publishing.MavenPublishing
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FilenameFilter
@@ -124,6 +125,7 @@ class JarSignTask extends DefaultTask {
 	}
 	
 	private def void signFile(File source, File target) {
+		// Use this property to test the publishing process without access to the Jar signing service
 		if (project.hasProperty('signing.skip') && project.property('signing.skip') == 'true') {
 			logger.lifecycle('''Copy «source.withoutRootPath» (skipped signing)''')
 			copyFile(source, target)

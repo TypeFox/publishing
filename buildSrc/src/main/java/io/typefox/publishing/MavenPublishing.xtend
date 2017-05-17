@@ -8,6 +8,7 @@
 package io.typefox.publishing
 
 import com.google.common.io.Files
+import io.typefox.publishing.tasks.JarSignTask
 import java.io.File
 import java.nio.charset.Charset
 import org.apache.maven.settings.building.DefaultSettingsBuilderFactory
