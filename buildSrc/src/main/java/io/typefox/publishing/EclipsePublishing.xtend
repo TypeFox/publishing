@@ -106,15 +106,17 @@ class EclipsePublishing {
 					group = 'Signing'
 					description = '''Send the plugins of the «repoName» P2 repository to the JAR signing service'''
 					dependsOn(unzipP2Task)
-					if (osspub.packJars)
-						dependsOn('''repack«repoName»P2Plugins''')
 					from = files(listFiles(new File(buildDir, '''p2-«repoName.toLowerCase»/repository-unsigned/plugins'''),
 							jarFilter && namespaceFilter))
 					outputDir = file('''«rootDir»/build-result/p2.repository/plugins''')
-					alternateSourceDir = MavenPublishing.getArtifactsDir(project)
-					alternateTargetDir = MavenPublishing.getSignedArtifactsDir(project)
-					failOnInconsistency = osspub.failOnInconsistentJars
-					acceptedDifferingJars += repository.acceptedDifferingJars
+					if (osspub.packJars) {
+						dependsOn('''repack«repoName»P2Plugins''')
+					} else {
+						alternateSourceDir = MavenPublishing.getArtifactsDir(project)
+						alternateTargetDir = MavenPublishing.getSignedArtifactsDir(project)
+						failOnInconsistency = osspub.failOnInconsistentJars
+						acceptedDifferingJars += repository.acceptedDifferingJars
+					}
 				]
 				
 				val packPluginsTask = if (osspub.packJars) tasks.create('''pack«repoName»P2Plugins''', Pack200Task) [
