@@ -358,7 +358,7 @@ class EclipsePublishing {
 											property.setAttribute('value', size)
 									}
 									case 'download.md5': {
-										val md5 = computeMd5Checksum(destDir, id, version, classifier, 'jar')
+										val md5 = computeMd5Checksum(destDir, id, version, classifier, if (isPacked) 'jar.pack.gz' else 'jar')
 										if (md5 !== null)
 											property.setAttribute('value', md5)
 									}
