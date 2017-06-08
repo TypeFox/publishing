@@ -15,7 +15,6 @@ if (mavenSource == null || mavenSource == 'jenkins') {
 		"http://services.typefox.io/open-source/jenkins/job/${jobName}/job/${osspub.branch}/lastStableBuild/artifact/build/maven-repository/"
 	}
 	repositories {
-		maven { url jenkinsRepo('lsapi') }
 		maven { url jenkinsPipelineRepo('lsp4j') }
 		maven { url jenkinsPipelineRepo('xtext-lib') }
 		maven { url jenkinsPipelineRepo('xtext-core') }
@@ -23,6 +22,7 @@ if (mavenSource == null || mavenSource == 'jenkins') {
 		maven { url jenkinsPipelineRepo('xtext-web') }
 		maven { url jenkinsPipelineRepo('xtext-maven') }
 		maven { url jenkinsPipelineRepo('xtext-xtend') }
+		maven { url "http://services.typefox.io/open-source/jenkins/job/sprotty/job/${osspub.branch}/lastStableBuild/artifact/server/build/maven-repository/" }
 	}
 } else if (mavenSource == 'hudsonSnapshot') {
 	repositories {

@@ -5,13 +5,6 @@
 
 osspub {
 	project {
-		name 'LsApi'
-		group 'io.typefox.lsapi'
-		artifact 'io.typefox.lsapi'
-		artifact 'io.typefox.lsapi.annotations'
-		artifact 'io.typefox.lsapi.services'
-	}
-	project {
 		name 'Lsp4j'
 		group 'org.eclipse.lsp4j'
 		artifact 'org.eclipse.lsp4j'
@@ -94,6 +87,13 @@ osspub {
 			name 'org.eclipse.xtend.maven.parent'
 			excludeExtension 'jar'
 		}
+	}
+	project {
+		name 'Sprotty'
+		group 'io.typefox.sprotty'
+		artifact 'diagram-api'
+		artifact 'diagram-layout-engine'
+		artifact 'diagram-server'
 	}
 }
 
