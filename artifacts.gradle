@@ -94,6 +94,7 @@ osspub {
 		artifact 'diagram-api'
 		artifact 'diagram-layout-engine'
 		artifact 'diagram-server'
+		artifact 'xtext-diagram'
 	}
 }
 
