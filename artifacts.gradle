@@ -36,7 +36,6 @@ osspub {
 		artifact 'org.eclipse.xtext.ide'
 		artifact 'org.eclipse.xtext.util'
 		artifact 'org.eclipse.xtext.testing'
-		artifact 'org.eclipse.xtext.ide.testing'
 		artifact 'org.eclipse.xtext.xtext.ide'
 		artifact 'org.eclipse.xtext.xtext.generator'
 		artifact 'org.eclipse.xtext.xtext.wizard'
