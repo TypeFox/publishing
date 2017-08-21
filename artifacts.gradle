@@ -96,6 +96,18 @@ osspub {
 		artifact 'diagram-server'
 		artifact 'xtext-diagram'
 	}
+	project {
+		name 'JFlex'
+		group 'io.typefox.xtext'
+		artifact 'jflex-fragment'
+	}
+	project {
+		name 'YangLsp'
+		group 'io.typefox.yang'
+		artifact 'io.typefox.yang'
+		artifact 'io.typefox.yang.ide'
+		artifact 'io.typefox.yang.diagram'
+	}
 }
 
 task publishMavenXtext {

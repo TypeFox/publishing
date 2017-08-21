@@ -22,6 +22,8 @@ if (mavenSource == null || mavenSource == 'jenkins') {
 		maven { url jenkinsPipelineRepo('xtext-web') }
 		maven { url jenkinsPipelineRepo('xtext-maven') }
 		maven { url jenkinsPipelineRepo('xtext-xtend') }
+		maven { url jenkinsPipelineRepo('xtext-jflex') }
+		maven { url "http://services.typefox.io/open-source/jenkins/job/yang-lsp/job/${osspub.branch}/lastStableBuild/artifact/yang-lsp/build/maven-repository/" }
 		maven { url "http://services.typefox.io/open-source/jenkins/job/sprotty/job/${osspub.branch}/lastStableBuild/artifact/server/build/maven-repository/" }
 	}
 } else if (mavenSource == 'hudsonSnapshot') {
