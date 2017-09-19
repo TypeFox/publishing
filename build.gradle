@@ -20,7 +20,7 @@ if (mavenSource == null || mavenSource == 'jenkins') {
 		maven { url jenkinsPipelineRepo('xtext-core') }
 		maven { url jenkinsPipelineRepo('xtext-extras') }
 		maven { url jenkinsPipelineRepo('xtext-web') }
-		maven { url jenkinsPipelineRepo('xtext-maven') }
+		maven { url "http://services.typefox.io/open-source/jenkins/job/xtext-maven/job/${osspub.branch}/lastSuccessfulBuild/artifact/build/maven-repository/" }
 		maven { url jenkinsPipelineRepo('xtext-xtend') }
 		maven { url jenkinsPipelineRepo('xtext-jflex') }
 		maven { url "http://services.typefox.io/open-source/jenkins/job/yang-lsp/job/${osspub.branch}/lastStableBuild/artifact/yang-lsp/build/maven-repository/" }
