@@ -9,9 +9,9 @@ osspub {
 		group 'org.eclipse.lsp4j'
 		artifact 'org.eclipse.lsp4j'
 		artifact 'org.eclipse.lsp4j.debug'
-		artifact 'org.eclipse.lsp4j.debug.jsonrpc'
 		artifact 'org.eclipse.lsp4j.generator'
 		artifact 'org.eclipse.lsp4j.jsonrpc'
+		artifact 'org.eclipse.lsp4j.jsonrpc.debug'
 	}
 	project {
 		name 'XtextLib'
