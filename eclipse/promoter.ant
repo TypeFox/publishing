@@ -178,7 +178,9 @@
 
 	<target name="publish" unless="alreadyPromoted">
 
-		<echo>Remove old  nightly builds</echo>
+		<echo>Remove old nightly builds</echo>
+		<!-- make sure that working dir exists -->
+		<mkdir dir="${downloads.area}/downloads/drops/${version}" />
 		<antcall target="-cleanup.nightly">
 			<param name="working_dir" value="${downloads.area}/downloads/drops/${version}/" />
 		</antcall>
