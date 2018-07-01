@@ -39,6 +39,15 @@ class FileChecksums {
 	
 	static def byte[] getMd5Checksum(File file) throws FileNotFoundException, IOException {
 		val messageDigest = MessageDigest.getInstance('MD5')
+		getChecksum(file, messageDigest)
+	}
+	
+	static def byte[] getSha256Checksum(File file) throws FileNotFoundException, IOException {
+		val messageDigest = MessageDigest.getInstance('SHA-256')
+		getChecksum(file, messageDigest)
+	}
+	
+	static def byte[] getChecksum(File file, MessageDigest messageDigest) throws FileNotFoundException, IOException {
 		var DigestInputStream digestInputStream
 		try {
 			digestInputStream = new DigestInputStream(new FileInputStream(file), messageDigest)

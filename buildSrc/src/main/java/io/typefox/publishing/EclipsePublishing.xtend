@@ -362,6 +362,16 @@ class EclipsePublishing {
 										if (md5 !== null)
 											property.setAttribute('value', md5)
 									}
+									case 'download.checksum.md5': {
+										val md5 = computeMd5Checksum(destDir, id, version, classifier, if (isPacked) 'jar.pack.gz' else 'jar')
+										if (md5 !== null)
+											property.setAttribute('value', md5)
+									}
+									case 'download.checksum.sha-256': {
+										val sha256 = computeSha256Checksum(destDir, id, version, classifier, if (isPacked) 'jar.pack.gz' else 'jar')
+										if (sha256 !== null)
+											property.setAttribute('value', sha256)
+									}
 								}
 							}
 							if (isPacked) {
@@ -423,6 +433,19 @@ class EclipsePublishing {
 		val file = new File(path)
 		if (file.exists) {
 			val bytes = FileChecksums.getMd5Checksum(file)
+			return FileChecksums.toString(bytes)
+		}
+	}
+	
+	private def computeSha256Checksum(String dir, String id, String version, String classifier, String ext) {
+		val path = switch classifier {
+			case 'osgi.bundle': '''«dir»/plugins/«id»_«version».«ext»'''
+			case 'org.eclipse.update.feature': '''«dir»/features/«id»_«version».«ext»'''
+			default: ''
+		}
+		val file = new File(path)
+		if (file.exists) {
+			val bytes = FileChecksums.getSha256Checksum(file)
 			return FileChecksums.toString(bytes)
 		}
 	}
