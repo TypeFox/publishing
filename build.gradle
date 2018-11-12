@@ -24,7 +24,7 @@ if (mavenSource == null || mavenSource == 'jenkins') {
 		maven { url jenkinsPipelineRepo('xtext-xtend') }
 		maven { url jenkinsPipelineRepo('xtext-jflex') }
 		maven { url "http://services.typefox.io/open-source/jenkins/job/yang-lsp/job/${osspub.branch}/lastStableBuild/artifact/yang-lsp/build/maven-repository/" }
-		maven { url "http://services.typefox.io/open-source/jenkins/job/sprotty/job/${osspub.branch}/lastStableBuild/artifact/server/build/maven-repository/" }
+		maven { url "https://jenkins.eclipse.org/sprotty/job/sprotty-server/job/${osspub.branch}/lastStableBuild/artifact/build/maven-repository/" }
 	}
 } else if (mavenSource == 'hudsonSnapshot') {
 	repositories {
@@ -51,7 +51,7 @@ repositories.jcenter()
 
 osspub {
 	mavenUploadRepository 'ossrh'
-	
+
 	p2Repository {
 		name 'Xtext'
 		group 'modeling.tmf.xtext'
@@ -63,7 +63,7 @@ osspub {
 		acceptDifferingJars 'org.eclipse.xtend.core'
 		acceptDifferingJars 'org.eclipse.xtend.ide.common'
 	}
-	
+
 	p2Repository {
 		name 'Lsp4j'
 		group 'technology.lsp4j'

@@ -1,4 +1,4 @@
-/* 
+/*
  * Definition of artifacts to be published
  * Copyright 2016 TypeFox GmbH
  */
@@ -91,12 +91,12 @@ osspub {
 		}
 	}
 	project {
-		name 'Sprotty'
-		group 'io.typefox.sprotty'
-		artifact 'diagram-api'
-		artifact 'diagram-layout-engine'
-		artifact 'diagram-server'
-		artifact 'xtext-diagram'
+		name 'SprottyServer'
+		group 'org.eclipse.sprotty'
+		artifact 'org.eclipse.sprotty'
+		artifact 'org.eclipse.sprotty.layout'
+		artifact 'org.eclipse.sprotty.server'
+		artifact 'org.eclipse.sprotty.xtext'
 	}
 	project {
 		name 'JFlex'
