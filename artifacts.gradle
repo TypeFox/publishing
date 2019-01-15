@@ -16,6 +16,10 @@ osspub {
 	project {
 		name 'XtextLib'
 		group 'org.eclipse.xtext'
+		artifact {
+			name 'xtext-dev-bom'
+			excludeExtension 'jar'
+		}
 		artifact 'org.eclipse.xtext.xbase.lib'
 		artifact 'org.eclipse.xtext.xbase.lib.gwt'
 		artifact {
