@@ -86,10 +86,6 @@ osspub {
 			excludeClassifier 'javadoc'
 		}
 		artifact {
-			name 'xtend-android-archetype'
-			excludeClassifier 'javadoc'
-		}
-		artifact {
 			name 'org.eclipse.xtend.maven.parent'
 			excludeExtension 'jar'
 		}
