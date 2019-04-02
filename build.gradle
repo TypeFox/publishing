@@ -7,7 +7,7 @@ apply plugin: 'io.typefox.osspub'
 apply from: 'artifacts.gradle'
 
 if (!hasProperty('JENKINS_URL')) {
-  ext.JENKINS_URL = 'http://services.typefox.io/open-source/jenkins'
+  ext.JENKINS_URL = 'https://ci.eclipse.org/xtext'
 }
 
 def mavenSource = findProperty('mavenSource')
