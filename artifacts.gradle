@@ -11,7 +11,7 @@ osspub {
 		artifact 'org.eclipse.lsp4j.debug'
 		artifact 'org.eclipse.lsp4j.generator'
 		artifact 'org.eclipse.lsp4j.jsonrpc'
-		artifact 'org.eclipse.lsp4j.jsonrpc.debug''
+		artifact 'org.eclipse.lsp4j.jsonrpc.debug'
 		artifact 'org.eclipse.lsp4j.websocket'
 	}
 	project {
