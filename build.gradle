@@ -30,24 +30,6 @@ if (mavenSource == null || mavenSource == 'jenkins') {
 		maven { url "$JENKINS_URL/job/yang-lsp/job/${osspub.branch}/lastStableBuild/artifact/yang-lsp/build/maven-repository/" }
 		maven { url "https://jenkins.eclipse.org/sprotty/job/sprotty-server/job/${osspub.branch}/lastStableBuild/artifact/build/maven-repository/" }
 	}
-} else if (mavenSource == 'hudsonSnapshot') {
-	repositories {
-		maven {
-			url "https://hudson.eclipse.org/xtext/job/xtext-snapshots/lastStableBuild/artifact/build-result/maven-repository/"
-		}
-		maven {
-			url "https://hudson.eclipse.org/lsp4j/job/lsp4j-snapshots/lastStableBuild/artifact/build-result/maven-repository/"
-		}
-	}
-} else if (mavenSource == 'hudsonRelease') {
-	repositories {
-		maven {
-			url "https://hudson.eclipse.org/xtext/job/xtext-release/lastStableBuild/artifact/build-result/maven-repository/"
-		}
-		maven {
-			url "https://hudson.eclipse.org/lsp4j/job/lsp4j-release/lastStableBuild/artifact/build-result/maven-repository/"
-		}
-	}
 } else {
 	throw new GradleException("Invalid mavenSource: $mavenSource")
 }

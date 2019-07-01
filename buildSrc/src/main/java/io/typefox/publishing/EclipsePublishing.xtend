@@ -237,7 +237,7 @@ class EclipsePublishing {
 		java.home=«System.getenv('JAVA_HOME')»
 		eclipse.home=«ECLIPSE_HOME»
 		build.id=«buildPrefix»«repository.buildTimestamp»
-		hudson.build.id=«System.getenv('BUILD_ID')»
+		jenkins.build.id=«System.getenv('BUILD_ID')»
 	'''
 	
 	private def generatePublisherProperties(P2Repository repository) '''
