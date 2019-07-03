@@ -40,6 +40,8 @@ import org.tukaani.xz.XZOutputStream
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 import pw.prok.download.Download
+import org.gradle.api.provider.Provider
+import org.gradle.api.provider.ProviderFactory
 
 @FinalFieldsConstructor
 class EclipsePublishing {
@@ -186,22 +188,26 @@ class EclipsePublishing {
 					dependsOn('''update«repoName»ArtifactsChecksum''')
 				from = '''«rootDir»/build-result/p2.repository'''
 				destinationDir = file('''«rootDir»/build-result/downloads''')
-				doFirst(new Action<Task>(){
+				
+				val p = project.providers.provider(new Callable<String>(){
 					
-					override execute(Task task2) {
-						val it = task2 as Zip
+					override call() throws Exception {
 						if (repository.group.nullOrEmpty)
-							archiveName = '''«repoName.toLowerCase»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
+							return '''«repoName.toLowerCase»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
 						else {
 							val firstSegmentIndex = repository.group.indexOf('.')
 							if (firstSegmentIndex < 0)
-								archiveName = '''«repository.group»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
+								return  '''«repository.group»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
 							else
-								archiveName = '''«repository.group.substring(firstSegmentIndex + 1).replace('.', '-')»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
+								return  '''«repository.group.substring(firstSegmentIndex + 1).replace('.', '-')»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
 						}
 					}
 					
-				})
+					})
+				
+				archiveFileName.set(p)
+				
+			
 			]
 			
 			if (!repository.referenceFeature.nullOrEmpty) {
