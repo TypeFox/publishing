@@ -40,8 +40,6 @@ import org.tukaani.xz.XZOutputStream
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 import pw.prok.download.Download
-import org.gradle.api.provider.Provider
-import org.gradle.api.provider.ProviderFactory
 
 @FinalFieldsConstructor
 class EclipsePublishing {
@@ -187,7 +185,7 @@ class EclipsePublishing {
 				if (osspub.signJars || osspub.packJars)
 					dependsOn('''update«repoName»ArtifactsChecksum''')
 				from = '''«rootDir»/build-result/p2.repository'''
-				destinationDir = file('''«rootDir»/build-result/downloads''')
+				destinationDirectory.set(file('''«rootDir»/build-result/downloads'''))
 				
 				val p = project.providers.provider(new Callable<String>(){
 					
@@ -206,8 +204,6 @@ class EclipsePublishing {
 					})
 				
 				archiveFileName.set(p)
-				
-			
 			]
 			
 			if (!repository.referenceFeature.nullOrEmpty) {
@@ -220,8 +216,8 @@ class EclipsePublishing {
 					doLast(new Action<Task>(){
 						
 						override execute(Task arg0) {
-							Files.write(generatePropoteProperties(repository), promotePropertiesFile, Charset.defaultCharset)
-							Files.write(generatePublisherProperties(repository), publisherPropertiesFile, Charset.defaultCharset)
+							Files.asCharSink(promotePropertiesFile, Charset.defaultCharset).write(generatePropoteProperties(repository))
+							Files.asCharSink(publisherPropertiesFile, Charset.defaultCharset).write(generatePublisherProperties(repository))
 						}
 						
 					})

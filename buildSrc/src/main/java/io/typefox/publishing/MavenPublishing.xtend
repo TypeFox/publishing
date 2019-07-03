@@ -161,7 +161,7 @@ class MavenPublishing {
 									signing in maven-publish.
 									https://discuss.gradle.org/t/how-to-publish-artifacts-signatures-asc-files-using-maven-publish-plugin/7422
 									'''
-									Files.write(content, dummyFile, Charset.forName('UTF-8'))
+									Files.asCharSink(dummyFile, Charset.forName('UTF-8')).write(content)
 								}
 							})
 						]
