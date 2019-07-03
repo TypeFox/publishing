@@ -28,9 +28,11 @@ import javax.xml.transform.TransformerFactory
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
 import org.eclipse.xtend.lib.annotations.FinalFieldsConstructor
+import org.gradle.api.Action
 import org.gradle.api.GradleException
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.bundling.Zip
 import org.tukaani.xz.LZMA2Options
@@ -148,10 +150,14 @@ class EclipsePublishing {
 						dependsOn(signPluginsTask, signFeaturesTask)
 					if (osspub.packJars) 
 						dependsOn(packPluginsTask)
-					doLast [
-						updateArtifactsXml('''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned''',
-							'''«rootDir»/build-result/p2.repository''', repository)
-					]
+					doLast(new Action<Task>(){
+						
+						override execute(Task arg0) {
+							updateArtifactsXml('''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned''',
+								'''«rootDir»/build-result/p2.repository''', repository)
+						}
+						
+					})
 				]
 			}
 			
@@ -180,18 +186,22 @@ class EclipsePublishing {
 					dependsOn('''update«repoName»ArtifactsChecksum''')
 				from = '''«rootDir»/build-result/p2.repository'''
 				destinationDir = file('''«rootDir»/build-result/downloads''')
-				doFirst[ task2 |
-					val it = task2 as Zip
-					if (repository.group.nullOrEmpty)
-						archiveName = '''«repoName.toLowerCase»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
-					else {
-						val firstSegmentIndex = repository.group.indexOf('.')
-						if (firstSegmentIndex < 0)
-							archiveName = '''«repository.group»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
-						else
-							archiveName = '''«repository.group.substring(firstSegmentIndex + 1).replace('.', '-')»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
+				doFirst(new Action<Task>(){
+					
+					override execute(Task task2) {
+						val it = task2 as Zip
+						if (repository.group.nullOrEmpty)
+							archiveName = '''«repoName.toLowerCase»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
+						else {
+							val firstSegmentIndex = repository.group.indexOf('.')
+							if (firstSegmentIndex < 0)
+								archiveName = '''«repository.group»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
+							else
+								archiveName = '''«repository.group.substring(firstSegmentIndex + 1).replace('.', '-')»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
+						}
 					}
-				]
+					
+				})
 			]
 			
 			if (!repository.referenceFeature.nullOrEmpty) {
@@ -201,10 +211,14 @@ class EclipsePublishing {
 					dependsOn(copyEclipsePublisherTask, unzipP2Task)
 					val promotePropertiesFile = file('''«rootDir»/build-result/promote.properties''')
 					val publisherPropertiesFile = file('''«rootDir»/build-result/publisher.properties''')
-					doLast[
-						Files.write(generatePropoteProperties(repository), promotePropertiesFile, Charset.defaultCharset)
-						Files.write(generatePublisherProperties(repository), publisherPropertiesFile, Charset.defaultCharset)
-					]
+					doLast(new Action<Task>(){
+						
+						override execute(Task arg0) {
+							Files.write(generatePropoteProperties(repository), promotePropertiesFile, Charset.defaultCharset)
+							Files.write(generatePublisherProperties(repository), publisherPropertiesFile, Charset.defaultCharset)
+						}
+						
+					})
 					outputs.file(promotePropertiesFile)
 					outputs.file(publisherPropertiesFile)
 				]

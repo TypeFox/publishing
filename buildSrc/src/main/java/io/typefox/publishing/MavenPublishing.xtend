@@ -29,6 +29,8 @@ import org.gradle.plugins.signing.SigningExtension
 import org.sonatype.plexus.components.cipher.DefaultPlexusCipher
 import org.sonatype.plexus.components.sec.dispatcher.DefaultSecDispatcher
 import org.sonatype.plexus.components.sec.dispatcher.SecUtil
+import org.gradle.api.Action
+import org.gradle.api.Task
 
 @FinalFieldsConstructor
 class MavenPublishing {
@@ -148,17 +150,20 @@ class MavenPublishing {
 						// FIXME see explanation below
 						val dummyFile = file('''«project.artifactsDir»/«pubArtifact.name».dummy''')
 						val dummyCreator = tasks.create('''createDummyFor«pubArtifact.publicationName.toFirstUpper»''') [
-							doLast [
-								val content = '''
+							doLast(new Action<Task>(){
+								
+								override execute(Task arg0) {
+									val content = '''
 									This artifact is published using Gradle and the maven-publish plugin. We need
 									to include a dummy artifact in order to prevent the maven-publish plugin from
 									setting the signature file as main artifact, which would result in no
 									signature being uploaded. This is a consequence of the lacking support for
 									signing in maven-publish.
 									https://discuss.gradle.org/t/how-to-publish-artifacts-signatures-asc-files-using-maven-publish-plugin/7422
-								'''
-								Files.write(content, dummyFile, Charset.forName('UTF-8'))
-							]
+									'''
+									Files.write(content, dummyFile, Charset.forName('UTF-8'))
+								}
+							})
 						]
 						artifacts.add(archivesConfig.name, dummyFile) => [ a |
 							val it = a as ConfigurablePublishArtifact
