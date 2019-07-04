@@ -148,7 +148,7 @@ class EclipsePublishing {
 						dependsOn(signPluginsTask, signFeaturesTask)
 					if (osspub.packJars) 
 						dependsOn(packPluginsTask)
-					doLast [
+					doLast[ 
 						updateArtifactsXml('''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned''',
 							'''«rootDir»/build-result/p2.repository''', repository)
 					]
@@ -179,19 +179,20 @@ class EclipsePublishing {
 				if (osspub.signJars || osspub.packJars)
 					dependsOn('''update«repoName»ArtifactsChecksum''')
 				from = '''«rootDir»/build-result/p2.repository'''
-				destinationDir = file('''«rootDir»/build-result/downloads''')
-				doFirst[ task2 |
-					val it = task2 as Zip
+				destinationDirectory.set(file('''«rootDir»/build-result/downloads'''))
+				
+				val p = project.providers.provider [
 					if (repository.group.nullOrEmpty)
-						archiveName = '''«repoName.toLowerCase»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
+						return '''«repoName.toLowerCase»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
 					else {
 						val firstSegmentIndex = repository.group.indexOf('.')
 						if (firstSegmentIndex < 0)
-							archiveName = '''«repository.group»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
+							return  '''«repository.group»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
 						else
-							archiveName = '''«repository.group.substring(firstSegmentIndex + 1).replace('.', '-')»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
+							return  '''«repository.group.substring(firstSegmentIndex + 1).replace('.', '-')»-Update-«buildPrefix»«repository.buildTimestamp».zip'''
 					}
 				]
+				archiveFileName.set(p)
 			]
 			
 			if (!repository.referenceFeature.nullOrEmpty) {
@@ -201,9 +202,9 @@ class EclipsePublishing {
 					dependsOn(copyEclipsePublisherTask, unzipP2Task)
 					val promotePropertiesFile = file('''«rootDir»/build-result/promote.properties''')
 					val publisherPropertiesFile = file('''«rootDir»/build-result/publisher.properties''')
-					doLast[
-						Files.write(generatePropoteProperties(repository), promotePropertiesFile, Charset.defaultCharset)
-						Files.write(generatePublisherProperties(repository), publisherPropertiesFile, Charset.defaultCharset)
+					doLast [
+						Files.asCharSink(promotePropertiesFile, Charset.defaultCharset).write(generatePropoteProperties(repository))
+						Files.asCharSink(publisherPropertiesFile, Charset.defaultCharset).write(generatePublisherProperties(repository))
 					]
 					outputs.file(promotePropertiesFile)
 					outputs.file(publisherPropertiesFile)

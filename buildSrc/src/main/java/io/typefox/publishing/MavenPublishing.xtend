@@ -150,14 +150,14 @@ class MavenPublishing {
 						val dummyCreator = tasks.create('''createDummyFor«pubArtifact.publicationName.toFirstUpper»''') [
 							doLast [
 								val content = '''
-									This artifact is published using Gradle and the maven-publish plugin. We need
-									to include a dummy artifact in order to prevent the maven-publish plugin from
-									setting the signature file as main artifact, which would result in no
-									signature being uploaded. This is a consequence of the lacking support for
-									signing in maven-publish.
-									https://discuss.gradle.org/t/how-to-publish-artifacts-signatures-asc-files-using-maven-publish-plugin/7422
+								This artifact is published using Gradle and the maven-publish plugin. We need
+								to include a dummy artifact in order to prevent the maven-publish plugin from
+								setting the signature file as main artifact, which would result in no
+								signature being uploaded. This is a consequence of the lacking support for
+								signing in maven-publish.
+								https://discuss.gradle.org/t/how-to-publish-artifacts-signatures-asc-files-using-maven-publish-plugin/7422
 								'''
-								Files.write(content, dummyFile, Charset.forName('UTF-8'))
+								Files.asCharSink(dummyFile, Charset.forName('UTF-8')).write(content)
 							]
 						]
 						artifacts.add(archivesConfig.name, dummyFile) => [ a |
