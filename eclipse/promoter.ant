@@ -13,13 +13,13 @@
 
 		<!-- supply defaults -->
 		<property name="build.id" value="" />
-		<property name="hudson.build.id" value="" />
+		<property name="jenkins.build.id" value="" />
 
 		<propertyfile file="${promoter.properties.file}" comment="Promoter script properties">
 			<entry key="java.home" value="${java.home}" />
 			<entry key="eclipse.home" value="${eclipse.home}" />
 			<entry key="build.id" value="${build.id}" />
-			<entry key="hudson.build.id" value="${hudson.build.id}" />
+			<entry key="jenkins.build.id" value="${jenkins.build.id}" />
 		</propertyfile>
 
 		<!-- diagnostics
@@ -60,18 +60,18 @@
 		<!-- load the promoter properties using the PROMOTED_URL supplied by Hudson -->
 		<property prefix="saved." url="${promoter.properties.file.url}" />
 
-		<fail message="hudson.build.id not defined in ${promoter.properties.file.url}, can't continue">
+		<fail message="jenkins.build.id not defined in ${promoter.properties.file.url}, can't continue">
 			<condition>
 				<not>
 					<and>
-						<isset property="saved.hudson.build.id" />
-						<length string="${saved.hudson.build.id}" trim="true" when="greater" length="0" />
+						<isset property="saved.jenkins.build.id" />
+						<length string="${saved.jenkins.build.id}" trim="true" when="greater" length="0" />
 					</and>
 				</not>
 			</condition>
 		</fail>
 
-		<property name="build.root" location="${env.WORKSPACE}/../builds/${saved.hudson.build.id}" />
+		<property name="build.root" location="${env.WORKSPACE}/../builds/${saved.jenkins.build.id}" />
 
 		<echoproperties destfile="${publisher.root}/${publisher.properties.file.name}">
 			<propertyset>
