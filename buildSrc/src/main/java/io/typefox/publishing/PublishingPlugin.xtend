@@ -47,7 +47,7 @@ class PublishingPlugin implements Plugin<Project> {
 	}
 	
 	private def void configurePlugins() {
-		apply(#{'plugin' -> 'pw.prok.download'})
+		apply(#{'plugin' -> 'de.undercouch.download'})
 		apply(#{'plugin' -> 'signing'})
 		apply(#{'plugin' -> 'maven-publish'})
 	}

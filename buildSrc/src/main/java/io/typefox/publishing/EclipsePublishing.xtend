@@ -37,7 +37,7 @@ import org.tukaani.xz.LZMA2Options
 import org.tukaani.xz.XZOutputStream
 import org.w3c.dom.Document
 import org.w3c.dom.Element
-import pw.prok.download.Download
+import de.undercouch.gradle.tasks.download.Download
 
 @FinalFieldsConstructor
 class EclipsePublishing {
@@ -71,6 +71,7 @@ class EclipsePublishing {
 				description = '''Download the zipped P2 repository for «repoName»'''
 				src(repository.url)
 	    		dest('''«buildDir»/p2-«repoName.toLowerCase»/repository-unsigned.zip''')
+	    		retries = 5
 			]
 			
 			val unzipP2Task = tasks.create('''unzip«repoName»P2Repository''', Copy) [
