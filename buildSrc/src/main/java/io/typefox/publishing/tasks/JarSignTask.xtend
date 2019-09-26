@@ -136,6 +136,7 @@ class JarSignTask extends DefaultTask {
 					executable = 'curl'
 					args = #[
 						'--fail',
+						'--retry', '3', '--retry-delay', '10',
 						'--silent', '--show-error',
 						'--write-out', STDOUT_FORMAT,
 						'--output', target.path,
@@ -151,6 +152,7 @@ class JarSignTask extends DefaultTask {
 						executable = 'curl'
 						args = #[
 							'--silent',
+							'--retry', '3', '--retry-delay', '10',
 							'--form', '''file=@«source.path»''',
 							SIGNING_SERVICE
 						]
