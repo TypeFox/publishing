@@ -33,7 +33,7 @@ if (mavenSource == null || mavenSource == 'jenkins') {
 } else {
 	throw new GradleException("Invalid mavenSource: $mavenSource")
 }
-repositories.jcenter()
+repositories.mavenCentral()
 
 osspub {
 	mavenUploadRepository 'ossrh'

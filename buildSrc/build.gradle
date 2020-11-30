@@ -1,15 +1,15 @@
 buildscript {
-	repositories.jcenter()
+	repositories.mavenCentral()
 	dependencies {
-		classpath 'org.xtext:xtext-gradle-plugin:2.0.7'
+		classpath 'org.xtext:xtext-gradle-plugin:2.0.8'
 	}
 }
 
-ext.xtextVersion = '2.19.0'
+ext.xtextVersion = '2.23.0'
 ext.mavenVersion = '3.6.0'
 
 repositories {
-	jcenter()
+	mavenCentral()
 	maven {
 		url 'https://plugins.gradle.org/m2/'
 	}
