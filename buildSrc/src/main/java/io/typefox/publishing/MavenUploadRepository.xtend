@@ -16,7 +16,7 @@ class MavenUploadRepository {
 	
 	String stagingUrl = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
 	
-	String snapshotUrl = 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
+	String snapshotUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
 	
 	def void name(Object input) {
 		this.name = input.toString
