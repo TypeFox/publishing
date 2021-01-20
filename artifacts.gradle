@@ -12,7 +12,7 @@ osspub {
 		artifact 'org.eclipse.lsp4j.generator'
 		artifact 'org.eclipse.lsp4j.jsonrpc'
 		artifact 'org.eclipse.lsp4j.jsonrpc.debug'
-		artifact 'org.eclipse.lsp4j.websocket'
+		artifact 'org.eclipse.lsp4j.websocket.jakarta'
 	}
 	project {
 		name 'XtextLib'
