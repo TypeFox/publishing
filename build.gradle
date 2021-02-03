@@ -36,7 +36,7 @@ if (mavenSource == null || mavenSource == 'jenkins') {
 repositories.mavenCentral()
 
 osspub {
-	mavenUploadRepository 'ossrh'
+	mavenUploadRepository 'ossrh' // this is just a placeholder
 
 	p2Repository {
 		name 'Xtext'

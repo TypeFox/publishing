@@ -200,10 +200,7 @@ class MavenPublishing {
 			// Step 5: Create a publication for each project containing all artifacts and their signatures
 			for (pubArtifact : pubProject.artifacts) {
 				val publicationName = pubArtifact.publicationName
-				println(publicationName)
 				publishing.publications.create(publicationName, MavenPublication) => [ publication |
-					println(publication)
-					println(publication.name)
 					publication.groupId = pubArtifact.group
 					publication.artifactId = pubArtifact.name
 					publication.version = osspub.version
