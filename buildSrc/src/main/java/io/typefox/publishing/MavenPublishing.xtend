@@ -233,8 +233,9 @@ class MavenPublishing {
 			tasks.create('''publish«pubProject.name»''') [
 				group = 'Publishing'
 				description = '''Publishes all «pubProject.name» artifacts'''
+				val isSnapshot = osspub.version.endsWith('-SNAPSHOT')
 				for (pubArtifact : pubProject.artifacts) {
-					dependsOn('''publish«pubArtifact.publicationName.toFirstUpper»PublicationToOssrhRepository''')
+					dependsOn('''publish«pubArtifact.publicationName.toFirstUpper»PublicationTo«(isSnapshot ? "Ossrh" : "Ossrh-s01")»Repository''')
 				}
 			]
 			
