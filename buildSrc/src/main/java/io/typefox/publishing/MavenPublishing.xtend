@@ -201,6 +201,8 @@ class MavenPublishing {
 			for (pubArtifact : pubProject.artifacts) {
 				val publicationName = pubArtifact.publicationName
 				publishing.publications.create(publicationName, MavenPublication) => [ publication |
+					println(publication)
+					println(publication.name)
 					publication.groupId = pubArtifact.group
 					publication.artifactId = pubArtifact.name
 					publication.version = osspub.version
