@@ -60,6 +60,7 @@ class MavenPublishing {
 		val isSnapshot = osspub.version.endsWith('-SNAPSHOT')
 		publishing.repositories [
 			maven [
+				val uploadRepo = osspub.mavenUploadRepository
 				if (isSnapshot) {
 					url = uploadRepo.snapshotUrl
 					name = "ossrh"
