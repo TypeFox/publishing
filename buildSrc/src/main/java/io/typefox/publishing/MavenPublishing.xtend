@@ -61,11 +61,13 @@ class MavenPublishing {
 		publishing.repositories [
 			maven [
 				val uploadRepo = osspub.mavenUploadRepository
-				name = uploadRepo.name
-				if (isSnapshot)
+				if (isSnapshot) {
 					url = uploadRepo.snapshotUrl
-				else
+					name = "ossrh"
+				} else {
 					url = uploadRepo.stagingUrl
+					name = "ossrh-s01"
+				}
 				if (repoUsername !== null && repoPassword !== null) {
 					credentials [
 						username = repoUsername
