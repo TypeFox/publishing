@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016 TypeFox GmbH (http://www.typefox.io) and others.
+ * Copyright (c) 2016, 2021 TypeFox GmbH (http://www.typefox.io) and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -33,7 +33,7 @@ import static extension io.typefox.publishing.FileChecksums.*
 @Accessors
 class JarSignTask extends DefaultTask {
 	
-	static val SIGNING_SERVICE = 'http://build.eclipse.org:31338/sign'
+	static val SIGNING_SERVICE = 'https://cbi.eclipse.org/jarsigner/sign'
 	
 	static val STDOUT_FORMAT = '    %{size_upload} bytes uploaded, %{size_download} bytes downloaded (%{time_total} s)\\n'
 	
