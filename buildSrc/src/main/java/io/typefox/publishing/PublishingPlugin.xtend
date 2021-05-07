@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016 TypeFox GmbH (http://www.typefox.io) and others.
+ * Copyright (c) 2016, 2021 TypeFox GmbH (http://www.typefox.io) and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -38,7 +38,7 @@ class PublishingPlugin implements Plugin<Project> {
 				mavenPublishing.configure()
 				eclipsePublishing.configure()
 				
-				val cleanResultTask = tasks.create('''cleanBuildResult''', Delete) [
+				val cleanResultTask = tasks.create("cleanBuildResult", Delete) [
 					delete(file('''«rootDir»/build-result'''))
 				]
 				tasks.findByName('clean').dependsOn(cleanResultTask)

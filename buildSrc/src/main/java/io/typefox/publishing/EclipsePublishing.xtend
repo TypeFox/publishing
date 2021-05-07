@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016 TypeFox GmbH (http://www.typefox.io) and others.
+ * Copyright (c) 2016, 2021 TypeFox GmbH (http://www.typefox.io) and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -52,7 +52,7 @@ class EclipsePublishing {
 	}
 	
 	private def void configureTasks() {
-		val copyEclipsePublisherTask = tasks.create('''copyEclipsePublisherScripts''', Copy) [
+		val copyEclipsePublisherTask = tasks.create("copyEclipsePublisherScripts", Copy) [
 			group = 'Eclipse'
 			description = 'Copy the publisher scripts required for Eclipse publishing to the build result directory'
 			from = 'eclipse'
