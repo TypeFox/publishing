@@ -1,7 +1,8 @@
 buildscript {
 	repositories.mavenCentral()
+	repositories.gradlePluginPortal()
 	dependencies {
-		classpath 'org.xtext:xtext-gradle-plugin:2.0.8'
+		classpath 'org.xtext:xtext-gradle-plugin:2.1.0'
 	}
 }
 
@@ -31,6 +32,6 @@ dependencies {
 	implementation "org.apache.maven:maven-core:$mavenVersion"
 	implementation "org.sonatype.plexus:plexus-cipher:1.7"
 	implementation "org.sonatype.plexus:plexus-sec-dispatcher:1.4"
-	implementation "de.undercouch:gradle-download-task:4.0.0"
+	implementation "de.undercouch:gradle-download-task:4.1.2"
 	implementation "org.tukaani:xz:1.8"
 }
